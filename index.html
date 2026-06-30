@@ -206,7 +206,11 @@
       background: var(--bg-3);
       border-radius: 6px;
       color: var(--text-dim);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
+    .chat-header .model-tag.free { background: rgba(77, 255, 184, 0.15); color: var(--success); }
 
     .messages {
       flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -427,22 +431,40 @@
       <input id="apiKeyInput" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
       <div class="help">Get a free key (with $5 credit) at <a href="https://openrouter.ai" target="_blank">openrouter.ai</a></div>
 
-      <label>Model</label>
-      <select id="modelSelect">
-        <optgroup label="⭐ Recommended (NSFW-optimized)">
-          <option value="Sao10K/Euryale-2.3-L2-70B">Euryale 2 70B — Best overall</option>
-          <option value="TheDrummer/Rocinante-12B-v2.1">Rocinante 12B — Fast & smart</option>
-          <option value="Sao10K/Midnight-Rose-70B">Midnight Rose 70B — Poetic</option>
-          <option value="Sao10K/Lumimaid-70B">Lumimaid 70B — Romantic</option>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+        <label style="margin:0">Model</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text-dim);cursor:pointer">
+          <input id="freeOnlyToggle" type="checkbox" style="accent-color:var(--success);cursor:pointer" checked />
+          <span>🆓 Free only</span>
+        </label>
+      </div>
+      <select id="modelSelect" data-default="deepseek/deepseek-chat-v3-0324:free">
+        <optgroup label="🆓 FREE · NSFW-friendly (best)">
+          <option value="deepseek/deepseek-chat-v3-0324:free" data-free="true" selected>✅ DeepSeek Chat V3 · 64K</option>
+          <option value="mistralai/mistral-small-3.1-24b-instruct:free" data-free="true">✅ Mistral Small 3.1 · 128K</option>
+          <option value="nousresearch/hermes-3-llama-3.1-70b:free" data-free="true">✅ Hermes 3 70B · 128K</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free" data-free="true">✅ Llama 3.3 70B · 128K</option>
+          <option value="meta-llama/llama-4-maverick:free" data-free="true">✅ Llama 4 Maverick · 1M</option>
+          <option value="deepseek/deepseek-r1:free" data-free="true">✅ DeepSeek R1 (reasoning) · 64K</option>
         </optgroup>
-        <optgroup label="💜 Great general uncensored">
-          <option value="mistralai/mistral-small-3.2-24b-instruct">Mistral Small 3.2 24B</option>
-          <option value="deepseek/deepseek-chat-v3">DeepSeek V3 — Cheapest</option>
-          <option value="cognitivecomputations/dolphin-mistral-24b">Dolphin Mistral 24B</option>
-          <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B</option>
+        <optgroup label="🆓 FREE · Other great options">
+          <option value="qwen/qwen-2.5-72b-instruct:free" data-free="true">✅ Qwen 2.5 72B · 128K</option>
+          <option value="google/gemma-3-27b-it:free" data-free="true">✅ Gemma 3 27B · 128K</option>
+          <option value="meta-llama/llama-3.2-3b-instruct:free" data-free="true">✅ Llama 3.2 3B · 128K</option>
+        </optgroup>
+        <optgroup label="💰 PAID · Premium uncensored (best quality)">
+          <option value="Sao10K/Euryale-2.3-L2-70B" data-free="false">Euryale 2 70B · 64K · ~$0.84/$1.06 per 1M</option>
+          <option value="TheDrummer/Rocinante-12B-v2.1" data-free="false">Rocinante 12B · 8K · ~$0.30/$0.30 per 1M</option>
+          <option value="Sao10K/Midnight-Rose-70B" data-free="false">Midnight Rose 70B · 32K · ~$0.84/$1.06 per 1M</option>
+          <option value="Sao10K/Lumimaid-70B" data-free="false">Lumimaid 70B · 32K · ~$0.84/$1.06 per 1M</option>
+        </optgroup>
+        <optgroup label="💰 PAID · Cheap & reliable">
+          <option value="mistralai/mistral-small-3.2-24b-instruct" data-free="false">Mistral Small 3.2 · 128K · ~$0.20/$0.60 per 1M</option>
+          <option value="deepseek/deepseek-chat-v3" data-free="false">DeepSeek V3 · 64K · ~$0.14/$0.28 per 1M</option>
+          <option value="cognitivecomputations/dolphin-mistral-24b" data-free="false">Dolphin Mistral 24B · 32K · ~$0.20/$0.20 per 1M</option>
         </optgroup>
       </select>
-      <div class="help">All models above are uncensored. Euryale is the gold standard for RP.</div>
+      <div class="help">🆓 = $0 forever (rate-limited ~20 req/min). 💰 costs OpenRouter credits per token. All models here are uncensored.</div>
 
       <button id="saveSetupBtn" class="btn-primary">Get Started →</button>
     </div>
@@ -579,7 +601,7 @@ const STORE_KEY = 'lust_state_v1';
 // ---------- State ----------
 const defaultState = {
   apiKey: '',
-  model: 'Sao10K/Euryale-2.3-L2-70B',
+  model: 'deepseek/deepseek-chat-v3-0324:free',
   characters: [],          // [{id, name, avatar, description, personality, scenario, firstMessage, system, tags, createdAt}]
   currentCharId: null,
   sessions: {},            // {charId: [{role, content, ts}]}
@@ -659,8 +681,62 @@ document.getElementById('saveSetupBtn').onclick = () => {
 document.getElementById('openSettingsBtn').onclick = () => {
   document.getElementById('apiKeyInput').value = state.apiKey;
   document.getElementById('modelSelect').value = state.model;
+  syncFreeOnlyToggle();
   show('setup');
 };
+
+// Free-only filter for model dropdown
+const freeOnlyToggle = document.getElementById('freeOnlyToggle');
+const modelSelectEl = document.getElementById('modelSelect');
+
+function syncFreeOnlyToggle() {
+  freeOnlyToggle.checked = (state.model || '').endsWith(':free');
+  applyModelFilter();
+}
+function applyModelFilter() {
+  const showOnlyFree = freeOnlyToggle.checked;
+  // Cache full list on first run
+  if (!modelSelectEl._originalOptions) {
+    modelSelectEl._originalOptions = Array.from(modelSelectEl.querySelectorAll('option')).map(o => ({
+      text: o.textContent, value: o.value, free: o.dataset.free === 'true', group: o.parentElement.label,
+    }));
+  }
+  const currentValue = state.model || modelSelectEl.value;
+  // Reset
+  modelSelectEl.innerHTML = '';
+  const seenGroups = new Set();
+  modelSelectEl._originalOptions.forEach(opt => {
+    if (showOnlyFree && !opt.free) return;
+    let group = modelSelectEl.querySelector(`optgroup[label="${cssEscape(opt.group)}"]`);
+    if (!group) {
+      group = document.createElement('optgroup');
+      group.label = opt.group;
+      modelSelectEl.appendChild(group);
+    }
+    const o = document.createElement('option');
+    o.value = opt.value;
+    o.textContent = opt.text;
+    if (opt.free) o.dataset.free = 'true';
+    group.appendChild(o);
+  });
+  // Restore selection
+  if (Array.from(modelSelectEl.options).some(o => o.value === currentValue)) {
+    modelSelectEl.value = currentValue;
+  }
+}
+function cssEscape(s) { return String(s).replace(/"/g, '\\"'); }
+
+freeOnlyToggle.addEventListener('change', () => {
+  applyModelFilter();
+  // If current model was filtered out, switch to first free model
+  if (freeOnlyToggle.checked && !modelSelectEl.value.endsWith(':free')) {
+    const firstFree = Array.from(modelSelectEl.options).find(o => o.value.endsWith(':free'));
+    if (firstFree) {
+      modelSelectEl.value = firstFree.value;
+      toast('Switched to ' + firstFree.text);
+    }
+  }
+});
 
 // ---------- Characters list ----------
 const charListEl = document.getElementById('charList');
@@ -865,7 +941,10 @@ function openChat(charId) {
   const c = state.characters.find(x => x.id === charId);
   document.getElementById('chatAvatar').textContent = c.avatar || '🎭';
   document.getElementById('chatName').textContent = c.name;
-  document.getElementById('chatModelTag').textContent = shortModelName(state.model);
+  const tag = document.getElementById('chatModelTag');
+  tag.textContent = shortModelName(state.model);
+  tag.classList.toggle('free', modelIsFree(state.model));
+  tag.title = state.model + (modelIsFree(state.model) ? ' (free)' : ' (paid)');
   renderMessages();
   show('chat');
   setTimeout(() => userInput.focus(), 100);
@@ -886,10 +965,20 @@ function shortModelName(m) {
   if (m.includes('Lumimaid')) return 'Lumimaid';
   if (m.includes('Rocinante')) return 'Rocinante';
   if (m.includes('Mistral')) return 'Mistral';
-  if (m.includes('DeepSeek')) return 'DeepSeek';
+  if (m.includes('DeepSeek')) return m.includes('r1') ? 'DeepSeek R1' : 'DeepSeek';
   if (m.includes('Dolphin')) return 'Dolphin';
   if (m.includes('Qwen')) return 'Qwen';
+  if (m.includes('Hermes')) return 'Hermes 3';
+  if (m.includes('llama-4')) return 'Llama 4';
+  if (m.includes('llama-3')) return 'Llama 3';
+  if (m.includes('gemma')) return 'Gemma';
   return 'Model';
+}
+function modelIsFree(m) {
+  return (m || '').endsWith(':free');
+}
+function modelPriceLabel(m) {
+  return modelIsFree(m) ? '🆓' : '💰';
 }
 
 function getSession() {
@@ -1416,6 +1505,7 @@ async function fetchChubCharacter(fullPath) {
 
 // ---------- Boot ----------
 function boot() {
+  syncFreeOnlyToggle();
   if (!state.apiKey) {
     show('setup');
   } else {
