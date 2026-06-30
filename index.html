@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <title>Lust</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-2: #14141d;
+      --bg-3: #1d1d2a;
+      --border: #2a2a3d;
+      --text: #e8e8f0;
+      --text-dim: #8a8aa3;
+      --accent: #c44dff;
+      --accent-2: #ff4d9e;
+      --user-bubble: linear-gradient(135deg, #c44dff, #ff4d9e);
+      --char-bubble: #1d1d2a;
+      --danger: #ff4d6d;
+      --success: #4dffb8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input, textarea { font-family: inherit; font-size: inherit; }
+
+    /* ---------- Screen system ---------- */
+    .screen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      background: var(--bg);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .screen.hidden {
+      transform: translateX(20px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ---------- Top bar ---------- */
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      padding-top: max(14px, env(safe-area-inset-top));
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 600; flex: 1; }
+    .topbar .back-btn { font-size: 22px; padding: 4px 8px; color: var(--text-dim); }
+    .topbar .icon-btn { padding: 6px 10px; color: var(--text-dim); font-size: 18px; }
+
+    /* ---------- Setup screen ---------- */
+    #setupScreen { justify-content: center; align-items: center; padding: 24px; }
+    .setup-card {
+      width: 100%; max-width: 420px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+    }
+    .setup-card .logo {
+      font-size: 36px; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .setup-card .subtitle { color: var(--text-dim); text-align: center; margin-bottom: 24px; font-size: 14px; }
+    .setup-card label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; margin-top: 16px; }
+    .setup-card input, .setup-card select {
+      width: 100%; padding: 12px 14px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+    }
+    .setup-card input:focus, .setup-card select:focus { border-color: var(--accent); }
+    .setup-card .help { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+    .setup-card .help a { color: var(--accent); text-decoration: none; }
+    .btn-primary {
+      width: 100%; margin-top: 20px;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      color: white; font-weight: 600; font-size: 15px;
+    }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; }
+
+    /* ---------- Characters list ---------- */
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .scroll-area::-webkit-scrollbar { width: 6px; }
+    .scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .char-list { padding: 12px; }
+    .char-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      transition: transform 0.1s, border-color 0.2s;
+    }
+    .char-card:active { transform: scale(0.98); border-color: var(--accent); }
+    .char-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
+    }
+    .char-info { flex: 1; min-width: 0; }
+    .char-name { font-weight: 600; font-size: 16px; margin-bottom: 2px; }
+    .char-preview { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-dim);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state .title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+    .fab {
+      position: absolute;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      right: 20px;
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; color: white;
+      box-shadow: 0 8px 24px rgba(196, 77, 255, 0.4);
+      z-index: 5;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* ---------- Character editor ---------- */
+    .form { padding: 16px; padding-bottom: max(80px, env(safe-area-inset-bottom)); }
+    .form label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; margin-top: 14px; font-weight: 500; }
+    .form label:first-child { margin-top: 0; }
+    .form input, .form textarea, .form select {
+      width: 100%; padding: 11px 13px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      resize: vertical;
+    }
+    .form input:focus, .form textarea:focus, .form select:focus { border-color: var(--accent); }
+    .form textarea { min-height: 70px; font-family: inherit; }
+    .form .row { display: flex; gap: 10px; }
+    .form .row > * { flex: 1; }
+    .form .actions {
+      position: sticky; bottom: 0;
+      background: var(--bg);
+      padding: 12px 0;
+      margin-top: 20px;
+      display: flex; gap: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .form .actions button { flex: 1; padding: 13px; border-radius: 10px; font-weight: 600; }
+    .btn-save { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; }
+    .btn-danger { background: var(--bg-2); color: var(--danger); border: 1px solid var(--danger); }
+    .btn-secondary { background: var(--bg-2); color: var(--text); border: 1px solid var(--border); }
+
+    /* ---------- Chat screen ---------- */
+    #chatScreen { background: var(--bg); }
+    .chat-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .chat-header .avatar-sm {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .chat-header .name { font-weight: 600; flex: 1; }
+    .chat-header .model-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: var(--bg-3);
+      border-radius: 6px;
+      color: var(--text-dim);
+    }
+
+    .messages {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .msg { display: flex; gap: 8px; max-width: 88%; }
+    .msg .bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      font-size: 15px;
+    }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg.user .bubble {
+      background: var(--user-bubble);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.assistant { align-self: flex-start; }
+    .msg.assistant .bubble {
+      background: var(--char-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    .msg .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; padding: 0 6px; }
+    .msg-actions {
+      display: flex; gap: 6px;
+      margin-top: 4px;
+      padding: 0 6px;
+      opacity: 0.6;
+    }
+    .msg.assistant .msg-actions { justify-content: flex-start; }
+    .msg.user .msg-actions { justify-content: flex-end; }
+    .msg-actions button {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: var(--bg-3);
+      border-radius: 6px;
+      color: var(--text-dim);
+    }
+    .msg-actions button:active { background: var(--accent); color: white; }
+
+    .typing { display: flex; gap: 4px; padding: 14px 18px; }
+    .typing span {
+      width: 7px; height: 7px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    .composer {
+      display: flex; gap: 8px; align-items: flex-end;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .composer textarea {
+      flex: 1;
+      max-height: 140px;
+      padding: 10px 12px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      outline: none;
+      resize: none;
+      line-height: 1.4;
+    }
+    .composer textarea:focus { border-color: var(--accent); }
+    .send-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .send-btn:disabled { opacity: 0.4; }
+    .send-btn:active { transform: scale(0.9); }
+
+    /* ---------- Modal ---------- */
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal.open { opacity: 1; pointer-events: auto; }
+    .modal-content {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      width: 100%; max-width: 400px;
+    }
+    .modal h3 { margin-bottom: 12px; font-size: 17px; }
+    .modal p { color: var(--text-dim); font-size: 14px; margin-bottom: 16px; }
+    .modal .modal-actions { display: flex; gap: 10px; }
+    .modal .modal-actions button { flex: 1; padding: 11px; border-radius: 10px; font-weight: 600; }
+
+    /* ---------- Search screen ---------- */
+    .search-bar {
+      display: flex; gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      outline: none;
+      font-size: 15px;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+    .search-bar button {
+      padding: 10px 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .search-filters {
+      display: flex; gap: 6px;
+      padding: 0 16px 10px;
+      background: var(--bg);
+      flex-wrap: wrap;
+    }
+    .chip {
+      padding: 5px 12px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .chip:active { transform: scale(0.95); }
+    .results { padding: 12px; }
+    .result-card {
+      display: flex; gap: 12px;
+      padding: 12px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    .result-card .result-img {
+      width: 64px; height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--bg-3);
+      flex-shrink: 0;
+    }
+    .result-card .result-info { flex: 1; min-width: 0; }
+    .result-card .result-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+    .result-card .result-creator { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+    .result-card .result-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .result-card .result-tag { font-size: 10px; padding: 2px 7px; background: var(--bg-3); border-radius: 8px; color: var(--text-dim); }
+    .result-card .result-tag.nsfw { background: var(--danger); color: white; }
+    .result-card .import-btn {
+      padding: 8px 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      align-self: center;
+      flex-shrink: 0;
+    }
+    .result-card .import-btn:disabled { opacity: 0.6; }
+    .result-card .import-btn.imported { background: var(--success); color: #0a0a0f; }
+
+    /* ---------- Toast ---------- */
+    .toast {
+      position: fixed;
+      bottom: 80px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-3);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- SETUP SCREEN -->
+  <div id="setupScreen" class="screen">
+    <div class="setup-card">
+      <div class="logo">Lust</div>
+      <div class="subtitle">Your private uncensored chat companion</div>
+
+      <label>OpenRouter API Key</label>
+      <input id="apiKeyInput" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
+      <div class="help">Get a free key (with $5 credit) at <a href="https://openrouter.ai" target="_blank">openrouter.ai</a></div>
+
+      <label>Model</label>
+      <select id="modelSelect">
+        <optgroup label="⭐ Recommended (NSFW-optimized)">
+          <option value="Sao10K/Euryale-2.3-L2-70B">Euryale 2 70B — Best overall</option>
+          <option value="TheDrummer/Rocinante-12B-v2.1">Rocinante 12B — Fast & smart</option>
+          <option value="Sao10K/Midnight-Rose-70B">Midnight Rose 70B — Poetic</option>
+          <option value="Sao10K/Lumimaid-70B">Lumimaid 70B — Romantic</option>
+        </optgroup>
+        <optgroup label="💜 Great general uncensored">
+          <option value="mistralai/mistral-small-3.2-24b-instruct">Mistral Small 3.2 24B</option>
+          <option value="deepseek/deepseek-chat-v3">DeepSeek V3 — Cheapest</option>
+          <option value="cognitivecomputations/dolphin-mistral-24b">Dolphin Mistral 24B</option>
+          <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B</option>
+        </optgroup>
+      </select>
+      <div class="help">All models above are uncensored. Euryale is the gold standard for RP.</div>
+
+      <button id="saveSetupBtn" class="btn-primary">Get Started →</button>
+    </div>
+  </div>
+
+  <!-- CHARACTERS LIST SCREEN -->
+  <div id="charactersScreen" class="screen hidden">
+    <div class="topbar">
+      <h1>Characters</h1>
+      <button id="searchBtn" class="icon-btn" title="Search characters">🔍</button>
+      <button id="importBtn" class="icon-btn" title="Import characters">⬇</button>
+      <button id="exportAllBtn" class="icon-btn" title="Export all">⬆</button>
+      <button id="openSettingsBtn" class="icon-btn" title="Settings">⚙</button>
+    </div>
+    <div class="scroll-area">
+      <div id="charList" class="char-list"></div>
+    </div>
+    <button id="newCharBtn" class="fab" title="New character">+</button>
+    <input id="importFileInput" type="file" accept=".json,application/json" style="display:none" />
+  </div>
+
+  <!-- CHARACTER EDITOR SCREEN -->
+  <div id="editorScreen" class="screen hidden">
+    <div class="topbar">
+      <button id="editorBackBtn" class="back-btn">‹</button>
+      <h1 id="editorTitle">New Character</h1>
+    </div>
+    <div class="scroll-area">
+      <div class="form">
+        <label>Name *</label>
+        <input id="fName" type="text" placeholder="e.g. Luna" maxlength="60" />
+
+        <div class="row">
+          <div>
+            <label>Avatar (emoji)</label>
+            <input id="fAvatar" type="text" placeholder="🌙" maxlength="4" />
+          </div>
+          <div>
+            <label>Tags</label>
+            <input id="fTags" type="text" placeholder="fantasy, romance" />
+          </div>
+        </div>
+
+        <label>Description * <span style="font-weight:400">(appearance, background)</span></label>
+        <textarea id="fDescription" placeholder="Luna is a 24-year-old witch with silver hair, emerald eyes..." rows="4"></textarea>
+
+        <label>Personality</label>
+        <textarea id="fPersonality" placeholder="Confident, teasing, secretly shy. Loves poetry..." rows="3"></textarea>
+
+        <label>Scenario <span style="font-weight:400">(the setting/context)</span></label>
+        <textarea id="fScenario" placeholder="You meet her at a moonlit tavern on the edge of a forest..." rows="3"></textarea>
+
+        <label>First Message <span style="font-weight:400">(opening greeting)</span></label>
+        <textarea id="fFirstMessage" placeholder="*She looks up from her drink, a faint smirk on her lips* Well, well..." rows="3"></textarea>
+
+        <label>Extra system instructions <span style="font-weight:400">(optional)</span></label>
+        <textarea id="fSystem" placeholder="Always stay in character. Be expressive with actions in asterisks..." rows="3"></textarea>
+
+        <div class="actions">
+          <button id="deleteCharBtn" class="btn-danger" style="display:none">Delete</button>
+          <button id="exportCharBtn" class="btn-secondary" style="display:none">Export</button>
+          <button id="saveCharBtn" class="btn-save">Save Character</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH SCREEN -->
+  <div id="searchScreen" class="screen hidden">
+    <div class="topbar">
+      <button id="searchBackBtn" class="back-btn">‹</button>
+      <h1>Browse TavernAI</h1>
+    </div>
+    <div class="search-bar">
+      <input id="searchInput" type="search" placeholder="Search characters..." enterkeyhint="search" />
+      <button id="searchGoBtn">Search</button>
+    </div>
+    <div class="search-filters">
+      <button class="chip active" data-nsfw="any">All</button>
+      <button class="chip" data-nsfw="true">NSFW</button>
+      <button class="chip" data-nsfw="false">SFW</button>
+      <button class="chip" data-sort="star_count">⭐ Most Stars</button>
+      <button class="chip" data-sort="created_at">🆕 Newest</button>
+    </div>
+    <div id="searchResults" class="scroll-area">
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <div class="title">Browse community characters</div>
+        <div>Searches the Chub.ai database (used by TavernAI / SillyTavern).<br>Tap any character to import.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT SCREEN -->
+  <div id="chatScreen" class="screen hidden">
+    <div class="chat-header">
+      <button id="chatBackBtn" class="back-btn">‹</button>
+      <div id="chatAvatar" class="avatar-sm">🌙</div>
+      <div class="name" id="chatName">Character</div>
+      <div class="model-tag" id="chatModelTag">Euryale</div>
+      <button id="chatMenuBtn" class="icon-btn" title="Menu">⋯</button>
+    </div>
+    <div id="messages" class="messages"></div>
+    <div class="composer">
+      <textarea id="userInput" rows="1" placeholder="Message..." ></textarea>
+      <button id="sendBtn" class="send-btn" disabled>➤</button>
+    </div>
+  </div>
+
+  <!-- CONFIRM MODAL -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle">Confirm</h3>
+      <p id="modalText">Are you sure?</p>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn-secondary">Cancel</button>
+        <button id="modalConfirm" class="btn-save">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+<script>
+/* ========================================================================
+   Lust - single-user NSFW chat PWA
+   - localStorage for: api key, model, characters, current session messages
+   - OpenRouter direct browser calls (CORS enabled)
+   ======================================================================== */
+
+const STORE_KEY = 'lust_state_v1';
+
+// ---------- State ----------
+const defaultState = {
+  apiKey: '',
+  model: 'Sao10K/Euryale-2.3-L2-70B',
+  characters: [],          // [{id, name, avatar, description, personality, scenario, firstMessage, system, tags, createdAt}]
+  currentCharId: null,
+  sessions: {},            // {charId: [{role, content, ts}]}
+};
+
+let state = loadState();
+let editingCharId = null;   // null = creating new
+let isGenerating = false;
+let abortController = null;
+
+// ---------- Storage ----------
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    return { ...structuredClone(defaultState), ...parsed };
+  } catch { return structuredClone(defaultState); }
+}
+function saveState() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+function uuid() {
+  return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+// ---------- Toast ----------
+const toastEl = document.getElementById('toast');
+let toastTimer;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+// ---------- Modal ----------
+const modal = document.getElementById('modal');
+let modalConfirmHandler = null;
+function showModal(title, text, onConfirm, confirmLabel = 'Confirm', danger = false) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalText').textContent = text;
+  const confirmBtn = document.getElementById('modalConfirm');
+  confirmBtn.textContent = confirmLabel;
+  confirmBtn.style.background = danger ? 'var(--danger)' : 'linear-gradient(135deg, var(--accent), var(--accent-2))';
+  modalConfirmHandler = onConfirm;
+  modal.classList.add('open');
+}
+document.getElementById('modalCancel').onclick = () => modal.classList.remove('open');
+document.getElementById('modalConfirm').onclick = () => {
+  modal.classList.remove('open');
+  if (modalConfirmHandler) modalConfirmHandler();
+};
+
+// ---------- Screens ----------
+const screens = ['setup', 'characters', 'editor', 'chat', 'search'].map(id => document.getElementById(id + 'Screen'));
+function show(name) {
+  screens.forEach(s => s.classList.add('hidden'));
+  document.getElementById(name + 'Screen').classList.remove('hidden');
+}
+
+// ---------- Setup ----------
+document.getElementById('saveSetupBtn').onclick = () => {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key.startsWith('sk-or-')) {
+    toast('Key should start with sk-or-');
+    return;
+  }
+  state.apiKey = key;
+  state.model = document.getElementById('modelSelect').value;
+  saveState();
+  renderCharacters();
+  show('characters');
+};
+
+// ---------- Settings (re-open from characters) ----------
+document.getElementById('openSettingsBtn').onclick = () => {
+  document.getElementById('apiKeyInput').value = state.apiKey;
+  document.getElementById('modelSelect').value = state.model;
+  show('setup');
+};
+
+// ---------- Characters list ----------
+const charListEl = document.getElementById('charList');
+function renderCharacters() {
+  if (state.characters.length === 0) {
+    charListEl.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🎭</div>
+        <div class="title">No characters yet</div>
+        <div>Tap + to create your first one</div>
+      </div>`;
+    return;
+  }
+  charListEl.innerHTML = state.characters.map(c => `
+    <div class="char-card" data-id="${c.id}">
+      <div class="char-avatar">${escapeHtml(c.avatar || '🎭')}</div>
+      <div class="char-info">
+        <div class="char-name">${escapeHtml(c.name)}</div>
+        <div class="char-preview">${escapeHtml((c.description || c.personality || 'No description').slice(0, 60))}</div>
+      </div>
+    </div>
+  `).join('');
+  charListEl.querySelectorAll('.char-card').forEach(el => {
+    el.onclick = () => openChat(el.dataset.id);
+  });
+}
+document.getElementById('newCharBtn').onclick = () => openEditor(null);
+
+// ---------- Import / Export ----------
+function buildExportPayload(characters) {
+  return {
+    app: 'Lust',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    characters: characters.map(c => ({
+      name: c.name,
+      avatar: c.avatar || '',
+      description: c.description || '',
+      personality: c.personality || '',
+      scenario: c.scenario || '',
+      firstMessage: c.firstMessage || '',
+      system: c.system || '',
+      tags: c.tags || '',
+      createdAt: c.createdAt || Date.now(),
+    })),
+  };
+}
+function sanitizeImported(raw) {
+  // Accept either: {characters:[...]}, or {character:{...}}, or a raw character, or an array
+  let list = [];
+  if (Array.isArray(raw)) list = raw;
+  else if (raw && Array.isArray(raw.characters)) list = raw.characters;
+  else if (raw && raw.character) list = [raw.character];
+  else if (raw && raw.name) list = [raw];
+  return list.filter(c => c && typeof c.name === 'string' && c.name.trim()).map(c => ({
+    name: String(c.name).trim(),
+    avatar: String(c.avatar || '🎭').slice(0, 4),
+    description: String(c.description || ''),
+    personality: String(c.personality || ''),
+    scenario: String(c.scenario || ''),
+    firstMessage: String(c.firstMessage || ''),
+    system: String(c.system || ''),
+    tags: String(c.tags || ''),
+    createdAt: Number(c.createdAt) || Date.now(),
+  }));
+}
+function downloadJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+function safeFilename(s) {
+  return String(s).replace(/[^a-z0-9_\-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'character';
+}
+
+document.getElementById('exportAllBtn').onclick = () => {
+  if (state.characters.length === 0) { toast('No characters to export'); return; }
+  const payload = buildExportPayload(state.characters);
+  const date = new Date().toISOString().slice(0, 10);
+  downloadJson(payload, `lust-characters-${date}.json`);
+  toast(`Exported ${state.characters.length} character${state.characters.length === 1 ? '' : 's'}`);
+};
+
+document.getElementById('importBtn').onclick = () => {
+  document.getElementById('importFileInput').click();
+};
+document.getElementById('importFileInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const raw = JSON.parse(text);
+    const incoming = sanitizeImported(raw);
+    if (incoming.length === 0) { toast('No valid characters found in file'); return; }
+    const existingNames = new Set(state.characters.map(c => c.name.toLowerCase()));
+    let added = 0, replaced = 0, renamed = 0;
+    incoming.forEach(ic => {
+      // Avoid ID collision by always assigning a new id
+      const baseName = ic.name;
+      let finalName = baseName;
+      let attempt = 0;
+      while (existingNames.has(finalName.toLowerCase())) {
+        attempt++;
+        const existingIdx = state.characters.findIndex(c => c.name.toLowerCase() === baseName.toLowerCase());
+        if (existingIdx >= 0) {
+          // Replace existing
+          state.characters[existingIdx] = { ...state.characters[existingIdx], ...ic, id: state.characters[existingIdx].id };
+          existingNames.delete(baseName.toLowerCase());
+          existingNames.add(baseName.toLowerCase()); // still in there (replaced)
+          replaced++;
+          return;
+        }
+        finalName = `${baseName} (${attempt + 1})`;
+      }
+      state.characters.push({ id: uuid(), ...ic, name: finalName });
+      existingNames.add(finalName.toLowerCase());
+      if (finalName !== baseName) renamed++; else added++;
+    });
+    saveState();
+    renderCharacters();
+    const parts = [];
+    if (added) parts.push(`${added} added`);
+    if (replaced) parts.push(`${replaced} replaced`);
+    if (renamed) parts.push(`${renamed} renamed`);
+    toast(`Imported: ${parts.join(', ') || 'done'}`);
+  } catch (err) {
+    toast('Import failed: ' + err.message.slice(0, 60));
+  } finally {
+    e.target.value = ''; // allow re-importing same file
+  }
+};
+
+// ---------- Editor ----------
+const editorFields = ['Name','Avatar','Tags','Description','Personality','Scenario','FirstMessage','System'];
+const editorIds = editorFields.map(f => 'f' + f);
+
+function openEditor(charId) {
+  editingCharId = charId;
+  document.getElementById('editorTitle').textContent = charId ? 'Edit Character' : 'New Character';
+  document.getElementById('deleteCharBtn').style.display = charId ? 'block' : 'none';
+  document.getElementById('exportCharBtn').style.display = charId ? 'block' : 'none';
+  if (charId) {
+    const c = state.characters.find(x => x.id === charId);
+    editorFields.forEach((f, i) => { document.getElementById(editorIds[i]).value = c[fieldKey(f)] || ''; });
+  } else {
+    editorIds.forEach(id => { document.getElementById(id).value = ''; });
+  }
+  show('editor');
+}
+function fieldKey(f) {
+  return f[0].toLowerCase() + f.slice(1);
+}
+document.getElementById('editorBackBtn').onclick = () => { renderCharacters(); show('characters'); };
+document.getElementById('saveCharBtn').onclick = () => {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { toast('Name is required'); return; }
+  const data = {};
+  editorFields.forEach((f, i) => { data[fieldKey(f)] = document.getElementById(editorIds[i]).value.trim(); });
+  if (editingCharId) {
+    const idx = state.characters.findIndex(x => x.id === editingCharId);
+    state.characters[idx] = { ...state.characters[idx], ...data };
+  } else {
+    state.characters.push({ id: uuid(), ...data, createdAt: Date.now() });
+  }
+  saveState();
+  toast('Saved');
+  renderCharacters();
+  show('characters');
+};
+document.getElementById('deleteCharBtn').onclick = () => {
+  showModal('Delete character?', 'This cannot be undone.', () => {
+    state.characters = state.characters.filter(c => c.id !== editingCharId);
+    delete state.sessions[editingCharId];
+    saveState();
+    renderCharacters();
+    show('characters');
+  }, 'Delete', true);
+};
+document.getElementById('exportCharBtn').onclick = () => {
+  if (!editingCharId) return;
+  const c = state.characters.find(x => x.id === editingCharId);
+  if (!c) return;
+  const payload = buildExportPayload([c]);
+  downloadJson(payload, `lust-${safeFilename(c.name)}.json`);
+  toast(`Exported "${c.name}"`);
+};
+
+// ---------- Chat ----------
+const messagesEl = document.getElementById('messages');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function openChat(charId) {
+  state.currentCharId = charId;
+  saveState();
+  const c = state.characters.find(x => x.id === charId);
+  document.getElementById('chatAvatar').textContent = c.avatar || '🎭';
+  document.getElementById('chatName').textContent = c.name;
+  document.getElementById('chatModelTag').textContent = shortModelName(state.model);
+  renderMessages();
+  show('chat');
+  setTimeout(() => userInput.focus(), 100);
+}
+document.getElementById('chatBackBtn').onclick = () => { renderCharacters(); show('characters'); };
+document.getElementById('chatMenuBtn').onclick = () => {
+  showModal('Clear this chat?', 'All messages with this character will be erased.', () => {
+    state.sessions[state.currentCharId] = [];
+    saveState();
+    renderMessages();
+    toast('Chat cleared');
+  }, 'Clear', true);
+};
+
+function shortModelName(m) {
+  if (m.includes('Euryale')) return 'Euryale';
+  if (m.includes('Midnight')) return 'Midnight';
+  if (m.includes('Lumimaid')) return 'Lumimaid';
+  if (m.includes('Rocinante')) return 'Rocinante';
+  if (m.includes('Mistral')) return 'Mistral';
+  if (m.includes('DeepSeek')) return 'DeepSeek';
+  if (m.includes('Dolphin')) return 'Dolphin';
+  if (m.includes('Qwen')) return 'Qwen';
+  return 'Model';
+}
+
+function getSession() {
+  const cid = state.currentCharId;
+  if (!state.sessions[cid]) state.sessions[cid] = [];
+  return state.sessions[cid];
+}
+
+function renderMessages() {
+  const session = getSession();
+  const c = state.characters.find(x => x.id === state.currentCharId);
+  messagesEl.innerHTML = '';
+  session.forEach((m, idx) => {
+    appendMessageDOM(m.role, m.content, idx);
+  });
+  scrollToBottom();
+}
+
+function appendMessageDOM(role, content, idx) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = content;
+  wrap.appendChild(bubble);
+  const actions = document.createElement('div');
+  actions.className = 'msg-actions';
+  if (role === 'assistant') {
+    const regen = document.createElement('button');
+    regen.textContent = '↻ Regenerate';
+    regen.onclick = () => regenerate(idx);
+    actions.appendChild(regen);
+  }
+  const copy = document.createElement('button');
+  copy.textContent = '📋';
+  copy.onclick = () => { navigator.clipboard.writeText(content).then(() => toast('Copied')); };
+  actions.appendChild(copy);
+  wrap.appendChild(actions);
+  messagesEl.appendChild(wrap);
+}
+
+function scrollToBottom() {
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function appendTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg assistant';
+  wrap.id = 'typingIndicator';
+  wrap.innerHTML = '<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  messagesEl.appendChild(wrap);
+  scrollToBottom();
+}
+function removeTyping() {
+  const t = document.getElementById('typingIndicator');
+  if (t) t.remove();
+}
+
+// ---------- Composer ----------
+userInput.addEventListener('input', () => {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+  sendBtn.disabled = userInput.value.trim().length === 0 || isGenerating;
+});
+userInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!sendBtn.disabled) sendMessage();
+  }
+});
+sendBtn.onclick = sendMessage;
+
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text || isGenerating) return;
+  const session = getSession();
+  session.push({ role: 'user', content: text, ts: Date.now() });
+  saveState();
+  appendMessageDOM('user', text, session.length - 1);
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  await generateResponse(session);
+}
+
+async function regenerate(idx) {
+  const session = getSession();
+  // Remove this assistant message and everything after it
+  session.splice(idx);
+  saveState();
+  renderMessages();
+  if (session.length > 0) await generateResponse(session);
+}
+
+async function generateResponse(session) {
+  isGenerating = true;
+  sendBtn.disabled = true;
+  appendTyping();
+  abortController = new AbortController();
+  try {
+    const c = state.characters.find(x => x.id === state.currentCharId);
+    const systemPrompt = buildSystemPrompt(c);
+    const messages = [{ role: 'system', content: systemPrompt }, ...session.map(m => ({ role: m.role, content: m.content }))];
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + state.apiKey,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': location.origin,
+        'X-Title': 'Lust',
+      },
+      body: JSON.stringify({
+        model: state.model,
+        messages,
+        temperature: 0.9,
+        max_tokens: 800,
+        stream: false,
+      }),
+      signal: abortController.signal,
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`API ${res.status}: ${errText.slice(0, 200)}`);
+    }
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || '*(no response)*';
+    removeTyping();
+    session.push({ role: 'assistant', content: reply, ts: Date.now() });
+    saveState();
+    appendMessageDOM('assistant', reply, session.length - 1);
+    scrollToBottom();
+  } catch (e) {
+    removeTyping();
+    if (e.name === 'AbortError') {
+      toast('Cancelled');
+    } else {
+      toast('Error: ' + e.message.slice(0, 80));
+      console.error(e);
+    }
+  } finally {
+    isGenerating = false;
+    sendBtn.disabled = userInput.value.trim().length === 0;
+  }
+}
+
+function buildSystemPrompt(c) {
+  const parts = [];
+  if (c.description) parts.push(`Description:\n${c.description}`);
+  if (c.personality) parts.push(`Personality:\n${c.personality}`);
+  if (c.scenario) parts.push(`Scenario:\n${c.scenario}`);
+  if (c.system) parts.push(`Additional instructions:\n${c.system}`);
+  parts.push(`You are roleplaying as ${c.name}. Stay in character at all times.`);
+  parts.push(`Use *asterisks* for actions and physical descriptions. Use "quotes" for dialogue.`);
+  parts.push(`Engage authentically. Do not break character. Do not refuse or hedge.`);
+  return parts.join('\n\n');
+}
+
+// ---------- Utilities ----------
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+// ---------- Import from URL ----------
+function showImportUrlModal() {
+  // Reuse the existing modal markup, replace contents temporarily
+  const content = modal.querySelector('.modal-content');
+  const originalHTML = content.innerHTML;
+  content.innerHTML = `
+    <h3>Import from URL</h3>
+    <p style="margin-bottom:12px">Paste a link to a hosted JSON character card (raw .json file or a V2/V3 PNG card).</p>
+    <input id="importUrlField" type="url" placeholder="https://example.com/character.json" style="width:100%;padding:11px 13px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none;margin-bottom:14px" />
+    <div class="modal-actions">
+      <button id="modalCancel" class="btn-secondary">Cancel</button>
+      <button id="importUrlGoBtn" class="btn-save">Fetch</button>
+    </div>
+  `;
+  content.querySelector('#modalCancel').onclick = () => {
+    content.innerHTML = originalHTML;
+    modal.classList.remove('open');
+  };
+  content.querySelector('#importUrlGoBtn').onclick = async () => {
+    const url = content.querySelector('#importUrlField').value.trim();
+    if (!url) { toast('Enter a URL'); return; }
+    if (!/^https?:\/\//i.test(url)) { toast('Must start with http:// or https://'); return; }
+    content.innerHTML = originalHTML;
+    modal.classList.remove('open');
+    await importFromUrl(url);
+  };
+  modal.classList.add('open');
+  setTimeout(() => content.querySelector('#importUrlField').focus(), 100);
+}
+
+async function importFromUrl(url) {
+  toast('Fetching...');
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('image/png') || url.toLowerCase().endsWith('.png')) {
+      // Parse PNG character card
+      const buf = await res.arrayBuffer();
+      const card = parsePngCard(buf);
+      if (!card) throw new Error('PNG has no V2/V3 character card data');
+      const char = v2CardToCharacter(card);
+      if (!char) throw new Error('Invalid character card structure');
+      commitImportedCharacters([char]);
+    } else {
+      // Treat as JSON
+      const text = await res.text();
+      const raw = JSON.parse(text);
+      const list = sanitizeImported(raw);
+      if (list.length === 0) throw new Error('No valid characters in JSON');
+      commitImportedCharacters(list);
+    }
+  } catch (e) {
+    toast('Import failed: ' + e.message.slice(0, 70));
+  }
+}
+
+function commitImportedCharacters(incoming) {
+  const existingNames = new Set(state.characters.map(c => c.name.toLowerCase()));
+  let added = 0, replaced = 0, renamed = 0;
+  incoming.forEach(ic => {
+    const baseName = ic.name;
+    let finalName = baseName;
+    let attempt = 0;
+    while (existingNames.has(finalName.toLowerCase())) {
+      attempt++;
+      const existingIdx = state.characters.findIndex(c => c.name.toLowerCase() === baseName.toLowerCase());
+      if (existingIdx >= 0) {
+        state.characters[existingIdx] = { ...state.characters[existingIdx], ...ic, id: state.characters[existingIdx].id };
+        existingNames.delete(baseName.toLowerCase());
+        existingNames.add(baseName.toLowerCase());
+        replaced++;
+        return;
+      }
+      finalName = `${baseName} (${attempt + 1})`;
+    }
+    state.characters.push({ id: uuid(), ...ic, name: finalName });
+    existingNames.add(finalName.toLowerCase());
+    if (finalName !== baseName) renamed++; else added++;
+  });
+  saveState();
+  renderCharacters();
+  const parts = [];
+  if (added) parts.push(`${added} added`);
+  if (replaced) parts.push(`${replaced} replaced`);
+  if (renamed) parts.push(`${renamed} renamed`);
+  toast(`Imported: ${parts.join(', ') || 'done'}`);
+}
+
+// Replace the existing import button to show options
+document.getElementById('importBtn').onclick = () => {
+  // Show a small action sheet modal
+  const content = modal.querySelector('.modal-content');
+  const originalHTML = content.innerHTML;
+  content.innerHTML = `
+    <h3>Import characters</h3>
+    <p style="margin-bottom:12px">Choose how to import:</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button id="importFileBtn2" class="btn-save" style="padding:14px">📁 From file (.json or PNG)</button>
+      <button id="importUrlBtn2" class="btn-secondary" style="padding:14px">🔗 From URL</button>
+      <button id="modalCancel" class="btn-secondary" style="padding:14px;margin-top:6px">Cancel</button>
+    </div>
+  `;
+  content.querySelector('#modalCancel').onclick = () => {
+    content.innerHTML = originalHTML;
+    modal.classList.remove('open');
+  };
+  content.querySelector('#importFileBtn2').onclick = () => {
+    content.innerHTML = originalHTML;
+    modal.classList.remove('open');
+    document.getElementById('importFileInput').click();
+  };
+  content.querySelector('#importUrlBtn2').onclick = () => {
+    content.innerHTML = originalHTML;
+    modal.classList.remove('open');
+    showImportUrlModal();
+  };
+  modal.classList.add('open');
+};
+
+// Update the file input handler to support PNG files and route through commitImportedCharacters
+document.getElementById('importFileInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    if (file.name.toLowerCase().endsWith('.png') || file.type === 'image/png') {
+      const buf = await file.arrayBuffer();
+      const card = parsePngCard(buf);
+      if (!card) throw new Error('No V2/V3 character card data in PNG');
+      const char = v2CardToCharacter(card);
+      if (!char) throw new Error('Invalid character card structure');
+      commitImportedCharacters([char]);
+    } else {
+      const text = await file.text();
+      const raw = JSON.parse(text);
+      const list = sanitizeImported(raw);
+      if (list.length === 0) throw new Error('No valid characters in file');
+      commitImportedCharacters(list);
+    }
+  } catch (err) {
+    toast('Import failed: ' + err.message.slice(0, 70));
+  } finally {
+    e.target.value = '';
+  }
+};
+// Also widen the accept list
+document.getElementById('importFileInput').setAttribute('accept', '.json,application/json,.png,image/png');
+
+// ---------- V2/V3 Character Card PNG parser ----------
+// Parses a PNG buffer looking for a tEXt chunk with keyword "chara" containing base64 JSON.
+function parsePngCard(buffer) {
+  const view = new DataView(buffer);
+  // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+  if (buffer.byteLength < 8) throw new Error('Too small');
+  const sig = [view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3),
+               view.getUint8(4), view.getUint8(5), view.getUint8(6), view.getUint8(7)];
+  if (!(sig[0]===0x89 && sig[1]===0x50 && sig[2]===0x4E && sig[3]===0x47)) throw new Error('Not a PNG');
+  let pos = 8;
+  const decoder = new TextDecoder('utf-8');
+  while (pos < buffer.byteLength) {
+    const length = view.getUint32(pos);
+    const typeBytes = [view.getUint8(pos+4), view.getUint8(pos+5), view.getUint8(pos+6), view.getUint8(pos+7)];
+    const typeStr = String.fromCharCode(...typeBytes);
+    const dataStart = pos + 8;
+    if (typeStr === 'tEXt') {
+      const bytes = new Uint8Array(buffer, dataStart, length);
+      let nullIdx = bytes.indexOf(0);
+      if (nullIdx > 0) {
+        const keyword = decoder.decode(bytes.slice(0, nullIdx));
+        if (keyword === 'chara') {
+          const textBytes = bytes.slice(nullIdx + 1);
+          const text = decoder.decode(textBytes);
+          // Try base64 first (V2/V3 standard)
+          try {
+            const decoded = atob(text.trim());
+            return JSON.parse(decoded);
+          } catch (e1) {
+            // Maybe raw JSON
+            try { return JSON.parse(text); } catch (e2) {
+              throw new Error('Could not parse chara data');
+            }
+          }
+        }
+      }
+    }
+    if (typeStr === 'IEND') break;
+    pos = dataStart + length + 4;
+    if (!isFinite(pos) || pos <= 0) break;
+  }
+  throw new Error('No chara tEXt chunk found');
+}
+
+// Convert V2/V3 card JSON to our character schema
+function v2CardToCharacter(card) {
+  // V2 spec: { spec, spec_version, data: { name, description, personality, scenario, first_mes, ... } }
+  // V3 spec: same but with more fields in data + extensions
+  let data = card.data || card;
+  if (!data || !data.name) return null;
+  const examples = data.mes_example ? `\n\nExample dialogues:\n${data.mes_example}` : '';
+  const sysExtras = (data.system_prompt || '') + (data.post_history_instructions || '' ? '\n\n' + data.post_history_instructions : '');
+  return {
+    name: String(data.name).trim(),
+    avatar: '',
+    description: String(data.description || '').trim(),
+    personality: String(data.personality || '').trim(),
+    scenario: String(data.scenario || '').trim(),
+    firstMessage: String(data.first_mes || data.first_message || data.alternate_greetings?.[0] || '').trim(),
+    system: (sysExtras + examples).trim(),
+    tags: Array.isArray(data.tags) ? data.tags.join(', ') : String(data.tags || ''),
+    createdAt: Date.now(),
+  };
+}
+
+// ---------- Chub.ai / TavernAI Search ----------
+const searchInput = document.getElementById('searchInput');
+const searchGoBtn = document.getElementById('searchGoBtn');
+const searchResultsEl = document.getElementById('searchResults');
+let searchState = { nsfw: 'any', sort: 'star_count', page: 1, query: '' };
+
+document.getElementById('searchBtn').onclick = () => {
+  show('search');
+  setTimeout(() => searchInput.focus(), 100);
+};
+document.getElementById('searchBackBtn').onclick = () => { show('characters'); };
+
+document.querySelectorAll('.search-filters .chip').forEach(chip => {
+  chip.onclick = () => {
+    if (chip.dataset.nsfw) {
+      document.querySelectorAll('.chip[data-nsfw]').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      searchState.nsfw = chip.dataset.nsfw;
+      searchState.page = 1;
+      if (searchState.query) runSearch();
+    } else if (chip.dataset.sort) {
+      document.querySelectorAll('.chip[data-sort]').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      searchState.sort = chip.dataset.sort;
+      searchState.page = 1;
+      if (searchState.query) runSearch();
+    }
+  };
+});
+
+searchGoBtn.onclick = runSearch;
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); runSearch(); }
+});
+
+async function runSearch() {
+  const q = searchInput.value.trim();
+  searchState.query = q;
+  searchState.page = 1;
+  searchResultsEl.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><div class="title">Searching...</div></div>`;
+  await doSearch();
+}
+
+async function doSearch() {
+  try {
+    const params = new URLSearchParams({
+      search: searchState.query || '',
+      limit: '20',
+      page: String(searchState.page),
+      sort: searchState.sort,
+    });
+    if (searchState.nsfw === 'true') { params.set('nsfw', 'true'); params.set('topics', 'NSFW'); }
+    if (searchState.nsfw === 'false') { params.set('nsfw', 'false'); }
+    const url = `https://api.chub.ai/search?${params}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Search API ${res.status}`);
+    const json = await res.json();
+    const nodes = json?.data?.nodes || [];
+    const total = json?.data?.count || 0;
+    if (nodes.length === 0) {
+      searchResultsEl.innerHTML = `<div class="empty-state"><div class="icon">🤷</div><div class="title">No results</div><div>Try a different search term</div></div>`;
+      return;
+    }
+    if (searchState.page === 1) {
+      searchResultsEl.innerHTML = `<div style="padding:10px 16px;font-size:12px;color:var(--text-dim)">${total.toLocaleString()} characters found</div><div id="resultsList" class="results"></div>`;
+    } else {
+      const existing = document.getElementById('resultsList');
+      if (existing) existing.innerHTML = '';
+    }
+    const listEl = document.getElementById('resultsList') || (searchResultsEl.innerHTML = `<div id="resultsList" class="results"></div>`, document.getElementById('resultsList'));
+    nodes.forEach(n => listEl.insertAdjacentHTML('beforeend', renderResultCard(n)));
+    if (nodes.length === 20 && searchState.page * 20 < Math.min(total, 200)) {
+      const loadMore = document.createElement('button');
+      loadMore.textContent = 'Load more';
+      loadMore.className = 'btn-secondary';
+      loadMore.style.cssText = 'width:calc(100% - 24px);margin:12px;padding:12px';
+      loadMore.onclick = () => { searchState.page++; doSearch(); };
+      listEl.appendChild(loadMore);
+    }
+  } catch (e) {
+    searchResultsEl.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div class="title">Search failed</div><div>${escapeHtml(e.message)}</div><div style="font-size:12px;margin-top:12px">Chub.ai may be down or blocking requests.</div></div>`;
+  }
+}
+
+function renderResultCard(n) {
+  const tags = (n.topics || []).slice(0, 5);
+  const creator = (n.fullPath || '').split('/')[0] || 'anon';
+  const stars = n.starCount || 0;
+  const nsfwTag = n.nsfw_image ? '<span class="result-tag nsfw">NSFW</span>' : '';
+  const img = n.avatar_url || n.max_res_url || '';
+  return `
+    <div class="result-card" data-id="${n.id}" data-fullpath="${escapeHtml(n.fullPath || '')}">
+      <img class="result-img" src="${escapeHtml(img)}" loading="lazy" onerror="this.style.background='var(--bg-3)';this.removeAttribute('src')" />
+      <div class="result-info">
+        <div class="result-name">${escapeHtml(n.name || 'Unnamed')}</div>
+        <div class="result-creator">by ${escapeHtml(creator)} · ⭐ ${stars.toLocaleString()}</div>
+        <div class="result-desc" style="font-size:12px;color:var(--text-dim);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml((n.description || n.tagline || '').slice(0, 200))}</div>
+        <div class="result-tags">${tags.map(t => `<span class="result-tag">${escapeHtml(t)}</span>`).join('')}${nsfwTag}</div>
+      </div>
+      <button class="import-btn" data-action="import">Import</button>
+    </div>
+  `;
+}
+
+searchResultsEl.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action="import"]');
+  if (!btn) return;
+  const card = btn.closest('.result-card');
+  const fullPath = card.dataset.fullpath;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const char = await fetchChubCharacter(fullPath);
+    if (!char) throw new Error('No data');
+    commitImportedCharacters([char]);
+    btn.textContent = '✓ Imported';
+    btn.classList.add('imported');
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Import';
+    toast('Failed: ' + err.message.slice(0, 70));
+  }
+});
+
+// Fetch a Chub character's full V2 data by downloading its PNG card
+async function fetchChubCharacter(fullPath) {
+  if (!fullPath) throw new Error('Missing path');
+  // Search again to get the avatar URL for this character
+  const searchRes = await fetch(`https://api.chub.ai/search?search=${encodeURIComponent(fullPath.split('/').pop())}&limit=5`);
+  if (!searchRes.ok) throw new Error(`Search ${searchRes.status}`);
+  const searchData = await searchRes.json();
+  const node = (searchData?.data?.nodes || []).find(n => n.fullPath === fullPath);
+  const pngUrl = node?.max_res_url || node?.avatar_url;
+  if (!pngUrl) throw new Error('No PNG URL found');
+  const pngRes = await fetch(pngUrl);
+  if (!pngRes.ok) throw new Error(`PNG ${pngRes.status}`);
+  const buf = await pngRes.arrayBuffer();
+  const card = parsePngCard(buf);
+  const char = v2CardToCharacter(card);
+  if (!char) throw new Error('Bad card');
+  // Add NSFW flag if available
+  if (node?.nsfw_image) char.tags = (char.tags ? char.tags + ', ' : '') + 'NSFW';
+  // Use a default avatar emoji if no avatar was set
+  if (!char.avatar) char.avatar = '🎭';
+  return char;
+}
+
+// ---------- Boot ----------
+function boot() {
+  if (!state.apiKey) {
+    show('setup');
+  } else {
+    renderCharacters();
+    show('characters');
+  }
+}
+boot();
+
+// Expose for debugging
+window._lust = { state, saveState };
+</script>
+</body>
+</html>
