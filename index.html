@@ -1479,6 +1479,22 @@ function appendMessageDOM(role, content, idx, suggested = false) {
   copy.title = 'Copy';
   copy.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(content).then(() => toast('Copied')); };
   actions.appendChild(copy);
+  const del = document.createElement('button');
+  del.textContent = '✕';
+  del.title = 'Delete message';
+  del.onclick = (e) => {
+    e.stopPropagation();
+    showModal('Delete this message?', 'It will be removed from the conversation history.', () => {
+      const s = getSession();
+      s.splice(idx, 1);
+      saveState();
+      // Dismiss any pinned actions or open suggestion input
+      document.querySelectorAll('.suggest-input').forEach(el => el.remove());
+      renderMessages();
+      toast('Deleted');
+    }, 'Delete', true);
+  };
+  actions.appendChild(del);
   wrap.appendChild(actions);
   messagesEl.appendChild(wrap);
 }
