@@ -438,18 +438,15 @@
           <span>🆓 Free only</span>
         </label>
       </div>
-      <select id="modelSelect" data-default="deepseek/deepseek-chat-v3-0324:free">
+      <select id="modelSelect" data-default="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">
         <optgroup label="🆓 FREE · NSFW-friendly (best)">
-          <option value="deepseek/deepseek-chat-v3-0324:free" data-free="true" selected>✅ DeepSeek Chat V3 · 64K</option>
-          <option value="mistralai/mistral-small-3.1-24b-instruct:free" data-free="true">✅ Mistral Small 3.1 · 128K</option>
-          <option value="nousresearch/hermes-3-llama-3.1-70b:free" data-free="true">✅ Hermes 3 70B · 128K</option>
+          <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free" data-free="true" selected>✅ Dolphin Mistral 24B Venice · 32K · uncensored</option>
+          <option value="nousresearch/hermes-3-llama-3.1-405b:free" data-free="true">✅ Hermes 3 405B · 128K · uncensored</option>
           <option value="meta-llama/llama-3.3-70b-instruct:free" data-free="true">✅ Llama 3.3 70B · 128K</option>
-          <option value="meta-llama/llama-4-maverick:free" data-free="true">✅ Llama 4 Maverick · 1M</option>
-          <option value="deepseek/deepseek-r1:free" data-free="true">✅ DeepSeek R1 (reasoning) · 64K</option>
-        </optgroup>
-        <optgroup label="🆓 FREE · Other great options">
-          <option value="qwen/qwen-2.5-72b-instruct:free" data-free="true">✅ Qwen 2.5 72B · 128K</option>
-          <option value="google/gemma-3-27b-it:free" data-free="true">✅ Gemma 3 27B · 128K</option>
+          <option value="openai/gpt-oss-20b:free" data-free="true">✅ GPT-OSS 20B · 128K</option>
+          <option value="google/gemma-4-26b-a4b-it:free" data-free="true">✅ Gemma 4 26B · 256K</option>
+          <option value="qwen/qwen3-next-80b-a3b-instruct:free" data-free="true">✅ Qwen3-Next 80B · 262K</option>
+          <option value="nvidia/nemotron-nano-9b-v2:free" data-free="true">✅ Nemotron Nano 9B · 128K</option>
           <option value="meta-llama/llama-3.2-3b-instruct:free" data-free="true">✅ Llama 3.2 3B · 128K</option>
         </optgroup>
         <optgroup label="💰 PAID · Premium uncensored (best quality)">
@@ -459,12 +456,14 @@
           <option value="Sao10K/Lumimaid-70B" data-free="false">Lumimaid 70B · 32K · ~$0.84/$1.06 per 1M</option>
         </optgroup>
         <optgroup label="💰 PAID · Cheap & reliable">
-          <option value="mistralai/mistral-small-3.2-24b-instruct" data-free="false">Mistral Small 3.2 · 128K · ~$0.20/$0.60 per 1M</option>
           <option value="deepseek/deepseek-chat-v3" data-free="false">DeepSeek V3 · 64K · ~$0.14/$0.28 per 1M</option>
-          <option value="cognitivecomputations/dolphin-mistral-24b" data-free="false">Dolphin Mistral 24B · 32K · ~$0.20/$0.20 per 1M</option>
+          <option value="mistralai/mistral-small-3.2-24b-instruct" data-free="false">Mistral Small 3.2 · 128K · ~$0.20/$0.60 per 1M</option>
         </optgroup>
       </select>
       <div class="help">🆓 = $0 forever (rate-limited ~20 req/min). 💰 costs OpenRouter credits per token. All models here are uncensored.</div>
+
+      <button id="testModelBtn" class="btn-secondary" style="margin-top:10px;padding:11px;width:100%;border:1px solid var(--border)">⚡ Test selected model</button>
+      <div id="testResult" style="font-size:13px;margin-top:8px;min-height:18px"></div>
 
       <button id="saveSetupBtn" class="btn-primary">Get Started →</button>
     </div>
@@ -676,6 +675,76 @@ document.getElementById('saveSetupBtn').onclick = () => {
   renderCharacters();
   show('characters');
 };
+
+// Test the currently selected model
+document.getElementById('testModelBtn').onclick = async () => {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  const model = document.getElementById('modelSelect').value;
+  const resultEl = document.getElementById('testResult');
+  if (!key.startsWith('sk-or-')) {
+    resultEl.innerHTML = '<span style="color:var(--danger)">⚠ Enter a valid API key first</span>';
+    return;
+  }
+  const btn = document.getElementById('testModelBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Testing...';
+  resultEl.innerHTML = '<span style="color:var(--text-dim)">Sending test message...</span>';
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': location.origin,
+        'X-Title': 'Lust-Test',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
+        max_tokens: 10,
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`${res.status}: ${parseOpenRouterError(txt)}`);
+    }
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || '(empty reply)';
+    resultEl.innerHTML = `<span style="color:var(--success)">✅ Works! Model replied: "${escapeHtml(reply.slice(0, 50))}"</span>`;
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--danger)">❌ ${escapeHtml(e.message.slice(0, 200))}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Test selected model';
+  }
+};
+
+// Friendly parser for OpenRouter error responses
+function parseOpenRouterError(text) {
+  try {
+    const j = JSON.parse(text);
+    const msg = j?.error?.message || j?.message || text;
+    // Map common errors to friendly messages
+    if (/unavailable/i.test(msg) && /free/i.test(msg)) {
+      return 'This model is not currently free. Try a different free model from the dropdown.';
+    }
+    if (/not found/i.test(msg) || /404/.test(text)) {
+      return 'Model not found. It may have been removed. Pick another.';
+    }
+    if (/auth/i.test(msg) || /401/.test(text)) {
+      return 'Invalid API key. Check your key at openrouter.ai/keys';
+    }
+    if (/rate.?limit/i.test(msg) || /429/.test(text)) {
+      return 'Rate limited. Wait a minute or switch models.';
+    }
+    if (/credits/i.test(msg) || /balance/i.test(msg) || /402/.test(text)) {
+      return 'Out of credits. This model is paid — switch to a free one or add credits.';
+    }
+    return msg.slice(0, 180);
+  } catch {
+    return text.slice(0, 180);
+  }
+}
 
 // ---------- Settings (re-open from characters) ----------
 document.getElementById('openSettingsBtn').onclick = () => {
@@ -1101,7 +1170,7 @@ async function generateResponse(session) {
     });
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`API ${res.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`${res.status}: ${parseOpenRouterError(errText)}`);
     }
     const data = await res.json();
     const reply = data.choices?.[0]?.message?.content || '*(no response)*';
@@ -1270,20 +1339,23 @@ document.getElementById('importFileInput').onchange = async (e) => {
   try {
     if (file.name.toLowerCase().endsWith('.png') || file.type === 'image/png') {
       const buf = await file.arrayBuffer();
-      const card = parsePngCard(buf);
-      if (!card) throw new Error('No V2/V3 character card data in PNG');
+      let card;
+      try { card = parsePngCard(buf); }
+      catch (parseErr) {
+        throw new Error('PNG has no V2/V3 character card data (' + parseErr.message + ') — use a PNG exported from SillyTavern/TavernAI/Chub, not a regular image');
+      }
       const char = v2CardToCharacter(card);
-      if (!char) throw new Error('Invalid character card structure');
+      if (!char) throw new Error('PNG parsed but missing required "name" field');
       commitImportedCharacters([char]);
     } else {
       const text = await file.text();
       const raw = JSON.parse(text);
       const list = sanitizeImported(raw);
-      if (list.length === 0) throw new Error('No valid characters in file');
+      if (list.length === 0) throw new Error('No characters found in file (JSON needs a "name" field)');
       commitImportedCharacters(list);
     }
   } catch (err) {
-    toast('Import failed: ' + err.message.slice(0, 70));
+    toast('Import failed: ' + err.message.slice(0, 90));
   } finally {
     e.target.value = '';
   }
@@ -1488,14 +1560,38 @@ async function fetchChubCharacter(fullPath) {
   if (!searchRes.ok) throw new Error(`Search ${searchRes.status}`);
   const searchData = await searchRes.json();
   const node = (searchData?.data?.nodes || []).find(n => n.fullPath === fullPath);
-  const pngUrl = node?.max_res_url || node?.avatar_url;
-  if (!pngUrl) throw new Error('No PNG URL found');
-  const pngRes = await fetch(pngUrl);
-  if (!pngRes.ok) throw new Error(`PNG ${pngRes.status}`);
-  const buf = await pngRes.arrayBuffer();
+  if (!node) throw new Error('Character not found in search');
+
+  // Try multiple URL patterns for the PNG card
+  const urlCandidates = [
+    node.max_res_url,
+    node.avatar_url,
+    `https://avatars.charhub.io/avatars/${node.fullPath}/chara_card_v2.png`,
+    `https://avatars.charhub.io/avatars/${node.fullPath}/avatar.webp`,
+  ].filter(Boolean);
+
+  let buf = null, lastErr = null;
+  for (const url of urlCandidates) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) { lastErr = `${url.split('/').pop()} ${r.status}`; continue; }
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('image') && !url.endsWith('.png')) { lastErr = `${url.split('/').pop()} wrong type`; continue; }
+      buf = await r.arrayBuffer();
+      // Verify it actually has chara data (don't waste time on plain avatars)
+      if (url.endsWith('.webp') || url.includes('avatar.webp')) {
+        // Try parsing as PNG card, skip if not
+        try { parsePngCard(buf); }
+        catch { lastErr = 'avatar not a card'; buf = null; continue; }
+      }
+      break;
+    } catch (e) { lastErr = e.message; }
+  }
+  if (!buf) throw new Error('No downloadable character card (tried ' + urlCandidates.length + ' URLs: ' + lastErr + ')');
+
   const card = parsePngCard(buf);
   const char = v2CardToCharacter(card);
-  if (!char) throw new Error('Bad card');
+  if (!char) throw new Error('Bad card structure');
   // Add NSFW flag if available
   if (node?.nsfw_image) char.tags = (char.tags ? char.tags + ', ' : '') + 'NSFW';
   // Use a default avatar emoji if no avatar was set
