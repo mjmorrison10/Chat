@@ -249,21 +249,30 @@
     }
     .msg .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; padding: 0 6px; }
     .msg-actions {
-      display: flex; gap: 6px;
-      margin-top: 4px;
-      padding: 0 6px;
-      opacity: 0.6;
+      display: flex; gap: 3px;
+      padding: 0 2px;
+      margin-top: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
     }
+    .msg:hover .msg-actions, .msg.show-actions .msg-actions { opacity: 0.7; }
     .msg.assistant .msg-actions { justify-content: flex-start; }
     .msg.user .msg-actions { justify-content: flex-end; }
     .msg-actions button {
       font-size: 11px;
-      padding: 3px 8px;
+      padding: 1px 5px;
+      min-width: 22px;
+      height: 22px;
       background: var(--bg-3);
-      border-radius: 6px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
       color: var(--text-dim);
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
-    .msg-actions button:active { background: var(--accent); color: white; }
+    .msg-actions button:active { background: var(--accent); color: white; opacity: 1; }
 
     .typing { display: flex; gap: 4px; padding: 14px 18px; }
     .typing span {
@@ -1381,6 +1390,11 @@ function renderMessages() {
 function appendMessageDOM(role, content, idx) {
   const wrap = document.createElement('div');
   wrap.className = 'msg ' + role;
+  // Tap message to toggle actions visible (for mobile)
+  wrap.onclick = () => {
+    document.querySelectorAll('.msg.show-actions').forEach(m => { if (m !== wrap) m.classList.remove('show-actions'); });
+    wrap.classList.toggle('show-actions');
+  };
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
   bubble.textContent = content;
@@ -1389,13 +1403,15 @@ function appendMessageDOM(role, content, idx) {
   actions.className = 'msg-actions';
   if (role === 'assistant') {
     const regen = document.createElement('button');
-    regen.textContent = '↻ Regenerate';
-    regen.onclick = () => regenerate(idx);
+    regen.textContent = '↻';
+    regen.title = 'Regenerate';
+    regen.onclick = (e) => { e.stopPropagation(); regenerate(idx); };
     actions.appendChild(regen);
   }
   const copy = document.createElement('button');
-  copy.textContent = '📋';
-  copy.onclick = () => { navigator.clipboard.writeText(content).then(() => toast('Copied')); };
+  copy.textContent = '⧉';
+  copy.title = 'Copy';
+  copy.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(content).then(() => toast('Copied')); };
   actions.appendChild(copy);
   wrap.appendChild(actions);
   messagesEl.appendChild(wrap);
@@ -1403,6 +1419,8 @@ function appendMessageDOM(role, content, idx) {
 
 function scrollToBottom() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  // Dismiss any pinned message actions when scrolling
+  document.querySelectorAll('.msg.show-actions').forEach(m => m.classList.remove('show-actions'));
 }
 
 function appendTyping() {
