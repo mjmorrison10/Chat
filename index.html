@@ -286,6 +286,40 @@
     }
     .msg-actions button:active { background: var(--accent); color: white; opacity: 1; }
 
+    /* ---------- Suggest input ---------- */
+    .suggest-input {
+      display: flex; gap: 6px; align-items: flex-end;
+      padding: 8px 10px;
+      background: var(--bg-3);
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      margin-top: 4px;
+      max-width: 88%;
+      align-self: flex-start;
+    }
+    .suggest-input textarea {
+      flex: 1;
+      border: none; outline: none;
+      background: transparent;
+      color: var(--text);
+      resize: none;
+      min-height: 22px;
+      max-height: 140px;
+      font-size: 15px;
+      line-height: 1.4;
+      font-family: inherit;
+    }
+    .suggest-input button {
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .suggest-input .si-cancel { background: var(--bg); color: var(--text-dim); }
+    .suggest-input .si-submit { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; }
+    .msg.suggested .bubble { border-left: 3px solid var(--accent); }
+
     .typing { display: flex; gap: 4px; padding: 14px 18px; }
     .typing span {
       width: 7px; height: 7px;
@@ -1408,14 +1442,15 @@ function renderMessages() {
   const c = state.characters.find(x => x.id === state.currentCharId);
   messagesEl.innerHTML = '';
   session.forEach((m, idx) => {
-    appendMessageDOM(m.role, m.content, idx);
+    appendMessageDOM(m.role, m.content, idx, !!m.suggested);
   });
   scrollToBottom();
 }
 
-function appendMessageDOM(role, content, idx) {
+function appendMessageDOM(role, content, idx, suggested = false) {
   const wrap = document.createElement('div');
-  wrap.className = 'msg ' + role;
+  wrap.className = 'msg ' + role + (suggested ? ' suggested' : '');
+  wrap.dataset.idx = idx;
   // Tap message to toggle actions visible (for mobile)
   wrap.onclick = () => {
     document.querySelectorAll('.msg.show-actions').forEach(m => { if (m !== wrap) m.classList.remove('show-actions'); });
@@ -1433,6 +1468,11 @@ function appendMessageDOM(role, content, idx) {
     regen.title = 'Regenerate';
     regen.onclick = (e) => { e.stopPropagation(); regenerate(idx); };
     actions.appendChild(regen);
+    const sug = document.createElement('button');
+    sug.textContent = '✍';
+    sug.title = 'Suggest what to say';
+    sug.onclick = (e) => { e.stopPropagation(); startSuggestion(idx); };
+    actions.appendChild(sug);
   }
   const copy = document.createElement('button');
   copy.textContent = '⧉';
@@ -1441,6 +1481,64 @@ function appendMessageDOM(role, content, idx) {
   actions.appendChild(copy);
   wrap.appendChild(actions);
   messagesEl.appendChild(wrap);
+}
+
+// Open an inline input below a message so the user can write what the AI should say
+function startSuggestion(idx) {
+  // Remove any existing suggestion input
+  document.querySelectorAll('.suggest-input').forEach(el => el.remove());
+  document.querySelectorAll('.msg.show-actions').forEach(m => m.classList.remove('show-actions'));
+  const wrap = messagesEl.querySelector(`.msg[data-idx="${idx}"]`);
+  if (!wrap) return;
+  const session = getSession();
+  const oldText = (session[idx]?.content || '').trim();
+  const c = state.characters.find(x => x.id === state.currentCharId);
+  const charName = c ? c.name : 'character';
+
+  const input = document.createElement('div');
+  input.className = 'suggest-input';
+  input.innerHTML = `
+    <textarea placeholder="Suggest what ${escapeHtml(charName)} would say here..." rows="1"></textarea>
+    <button class="si-cancel">Cancel</button>
+    <button class="si-submit">Send</button>
+  `;
+  input.querySelector('textarea').value = oldText;
+  wrap.appendChild(input);
+  const textarea = input.querySelector('textarea');
+  // Auto-resize
+  const resize = () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 140) + 'px';
+  };
+  textarea.addEventListener('input', resize);
+  resize();
+  textarea.focus();
+  // Move cursor to end
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+  const close = () => input.remove();
+  const submit = () => {
+    const text = textarea.value.trim();
+    if (!text) { close(); return; }
+    const session = getSession();
+    session[idx] = { role: 'assistant', content: text, ts: Date.now(), suggested: true };
+    saveState();
+    renderMessages();
+    toast('Suggestion saved');
+  };
+  input.querySelector('.si-cancel').onclick = (e) => { e.stopPropagation(); close(); };
+  input.querySelector('.si-submit').onclick = (e) => { e.stopPropagation(); submit(); };
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); e.stopPropagation();
+      submit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); e.stopPropagation();
+      close();
+    }
+  });
+  // Prevent the wrap's tap-to-toggle from triggering
+  input.onclick = (e) => e.stopPropagation();
 }
 
 function scrollToBottom() {
