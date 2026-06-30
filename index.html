@@ -200,6 +200,16 @@
       font-size: 18px;
     }
     .chat-header .name { font-weight: 600; flex: 1; }
+    .chat-header .provider-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: rgba(77, 255, 184, 0.15);
+      color: var(--success);
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-right: 4px;
+    }
     .chat-header .model-tag {
       font-size: 11px;
       padding: 3px 8px;
@@ -400,6 +410,82 @@
     .result-card .import-btn:disabled { opacity: 0.6; }
     .result-card .import-btn.imported { background: var(--success); color: #0a0a0f; }
 
+    /* ---------- Provider tabs ---------- */
+    .provider-tabs {
+      display: flex; gap: 6px;
+      margin-bottom: 14px;
+      background: var(--bg-3);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .provider-tab {
+      flex: 1;
+      padding: 9px 10px;
+      font-size: 13px;
+      color: var(--text-dim);
+      border-radius: 7px;
+      text-align: center;
+      font-weight: 500;
+    }
+    .provider-tab.active {
+      background: var(--bg-2);
+      color: var(--text);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .provider-tab .status-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .provider-tab.configured .status-dot { background: var(--success); }
+    .provider-tab.cooling .status-dot { background: #ffa500; }
+    .provider-tab.error .status-dot { background: var(--danger); }
+    .provider-panel {
+      background: var(--bg-3);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .provider-panel .panel-title {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .provider-panel input, .provider-panel select {
+      width: 100%; padding: 9px 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .provider-panel input:focus, .provider-panel select:focus { border-color: var(--accent); }
+    .auto-rotate-info {
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--bg-3);
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin: 8px 0;
+      line-height: 1.4;
+    }
+    .auto-rotate-info strong { color: var(--success); }
+    .chat-header .provider-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: rgba(77, 255, 184, 0.15);
+      color: var(--success);
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
     /* ---------- Toast ---------- */
     .toast {
       position: fixed;
@@ -427,42 +513,78 @@
       <div class="logo">Lust</div>
       <div class="subtitle">Your private uncensored chat companion</div>
 
-      <label>OpenRouter API Key</label>
-      <input id="apiKeyInput" type="password" placeholder="sk-or-v1-..." autocomplete="off" />
-      <div class="help">Get a free key (with $5 credit) at <a href="https://openrouter.ai" target="_blank">openrouter.ai</a></div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px">
-        <label style="margin:0">Model</label>
-        <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text-dim);cursor:pointer">
-          <input id="freeOnlyToggle" type="checkbox" style="accent-color:var(--success);cursor:pointer" checked />
-          <span>🆓 Free only</span>
-        </label>
+      <div class="auto-rotate-info">
+        <strong>🔄 Auto-rotation enabled:</strong> When one provider hits a rate limit, the app automatically tries the next configured provider. Add as many as you want — each gets its own rate limit pool.
       </div>
-      <select id="modelSelect" data-default="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">
-        <optgroup label="🆓 FREE · NSFW-friendly (best)">
-          <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free" data-free="true" selected>✅ Dolphin Mistral 24B Venice · 32K · uncensored</option>
-          <option value="nousresearch/hermes-3-llama-3.1-405b:free" data-free="true">✅ Hermes 3 405B · 128K · uncensored</option>
-          <option value="meta-llama/llama-3.3-70b-instruct:free" data-free="true">✅ Llama 3.3 70B · 128K</option>
-          <option value="openai/gpt-oss-20b:free" data-free="true">✅ GPT-OSS 20B · 128K</option>
-          <option value="google/gemma-4-26b-a4b-it:free" data-free="true">✅ Gemma 4 26B · 256K</option>
-          <option value="qwen/qwen3-next-80b-a3b-instruct:free" data-free="true">✅ Qwen3-Next 80B · 262K</option>
-          <option value="nvidia/nemotron-nano-9b-v2:free" data-free="true">✅ Nemotron Nano 9B · 128K</option>
-          <option value="meta-llama/llama-3.2-3b-instruct:free" data-free="true">✅ Llama 3.2 3B · 128K</option>
-        </optgroup>
-        <optgroup label="💰 PAID · Premium uncensored (best quality)">
-          <option value="Sao10K/Euryale-2.3-L2-70B" data-free="false">Euryale 2 70B · 64K · ~$0.84/$1.06 per 1M</option>
-          <option value="TheDrummer/Rocinante-12B-v2.1" data-free="false">Rocinante 12B · 8K · ~$0.30/$0.30 per 1M</option>
-          <option value="Sao10K/Midnight-Rose-70B" data-free="false">Midnight Rose 70B · 32K · ~$0.84/$1.06 per 1M</option>
-          <option value="Sao10K/Lumimaid-70B" data-free="false">Lumimaid 70B · 32K · ~$0.84/$1.06 per 1M</option>
-        </optgroup>
-        <optgroup label="💰 PAID · Cheap & reliable">
-          <option value="deepseek/deepseek-chat-v3" data-free="false">DeepSeek V3 · 64K · ~$0.14/$0.28 per 1M</option>
-          <option value="mistralai/mistral-small-3.2-24b-instruct" data-free="false">Mistral Small 3.2 · 128K · ~$0.20/$0.60 per 1M</option>
-        </optgroup>
-      </select>
-      <div class="help">🆓 = $0 forever (rate-limited ~20 req/min). 💰 costs OpenRouter credits per token. All models here are uncensored.</div>
 
-      <button id="testModelBtn" class="btn-secondary" style="margin-top:10px;padding:11px;width:100%;border:1px solid var(--border)">⚡ Test selected model</button>
+      <div class="provider-tabs" id="providerTabs">
+        <button class="provider-tab active" data-provider="openrouter"><span class="status-dot"></span>OpenRouter</button>
+        <button class="provider-tab" data-provider="groq"><span class="status-dot"></span>Groq</button>
+        <button class="provider-tab" data-provider="google"><span class="status-dot"></span>Google</button>
+      </div>
+
+      <!-- OpenRouter panel -->
+      <div class="provider-panel" data-provider="openrouter">
+        <div class="panel-title">
+          <span>🔑 OpenRouter API key</span>
+          <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);font-size:11px;text-decoration:none">Get free key →</a>
+        </div>
+        <input type="password" data-field="key" placeholder="sk-or-v1-..." autocomplete="off" />
+        <div data-field="model-wrap">
+          <select data-field="model">
+            <optgroup label="🆓 FREE · uncensored">
+              <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">✅ Dolphin Mistral 24B Venice · 32K</option>
+              <option value="nousresearch/hermes-3-llama-3.1-405b:free">✅ Hermes 3 405B · 128K</option>
+              <option value="meta-llama/llama-3.3-70b-instruct:free">✅ Llama 3.3 70B · 128K</option>
+              <option value="openai/gpt-oss-20b:free">✅ GPT-OSS 20B · 128K</option>
+              <option value="google/gemma-4-26b-a4b-it:free">✅ Gemma 4 26B · 256K</option>
+              <option value="qwen/qwen3-next-80b-a3b-instruct:free">✅ Qwen3-Next 80B · 262K</option>
+            </optgroup>
+            <optgroup label="💰 PAID · premium">
+              <option value="Sao10K/Euryale-2.3-L2-70B">Euryale 2 70B · 64K · ~$0.84/$1.06 per 1M</option>
+              <option value="deepseek/deepseek-chat-v3">DeepSeek V3 · 64K · ~$0.14/$0.28 per 1M</option>
+              <option value="mistralai/mistral-small-3.2-24b-instruct">Mistral Small 3.2 · 128K</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <!-- Groq panel -->
+      <div class="provider-panel" data-provider="groq" style="display:none">
+        <div class="panel-title">
+          <span>⚡ Groq API key (super fast)</span>
+          <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);font-size:11px;text-decoration:none">Get free key →</a>
+        </div>
+        <input type="password" data-field="key" placeholder="gsk_..." autocomplete="off" />
+        <div data-field="model-wrap">
+          <select data-field="model">
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile · 128K</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant · very fast</option>
+            <option value="mixtral-8x7b-32768">Mixtral 8x7B · 32K</option>
+            <option value="gemma2-9b-it">Gemma 2 9B · 8K</option>
+          </select>
+        </div>
+        <div class="help" style="font-size:11px;color:var(--text-dim);margin-top:4px">Free tier: ~30 req/min, 14,400 req/day. No credit card.</div>
+      </div>
+
+      <!-- Google AI Studio panel -->
+      <div class="provider-panel" data-provider="google" style="display:none">
+        <div class="panel-title">
+          <span>✨ Google AI Studio (Gemini)</span>
+          <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);font-size:11px;text-decoration:none">Get free key →</a>
+        </div>
+        <input type="password" data-field="key" placeholder="AIza..." autocomplete="off" />
+        <div data-field="model-wrap">
+          <select data-field="model">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash · 1M · fast</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro · 1M · best quality</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash · 1M · very fast</option>
+          </select>
+        </div>
+        <div class="help" style="font-size:11px;color:var(--text-dim);margin-top:4px">Free tier: 15 req/min, 1500/day. Very generous.</div>
+      </div>
+
+      <button id="testAllBtn" class="btn-secondary" style="margin-top:10px;padding:11px;width:100%;border:1px solid var(--border)">⚡ Test all configured providers</button>
       <div id="testResult" style="font-size:13px;margin-top:8px;min-height:18px"></div>
 
       <button id="saveSetupBtn" class="btn-primary">Get Started →</button>
@@ -563,6 +685,7 @@
       <button id="chatBackBtn" class="back-btn">‹</button>
       <div id="chatAvatar" class="avatar-sm">🌙</div>
       <div class="name" id="chatName">Character</div>
+      <span class="provider-badge" id="chatProviderBadge">OpenRouter</span>
       <div class="model-tag" id="chatModelTag">Euryale</div>
       <button id="chatMenuBtn" class="icon-btn" title="Menu">⋯</button>
     </div>
@@ -599,8 +722,19 @@ const STORE_KEY = 'lust_state_v1';
 
 // ---------- State ----------
 const defaultState = {
+  // Legacy fields kept for migration
   apiKey: '',
-  model: 'deepseek/deepseek-chat-v3-0324:free',
+  model: '',
+  // New multi-provider structure
+  providers: {
+    openrouter: { key: '', model: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free', enabled: true },
+    groq:       { key: '', model: 'llama-3.3-70b-versatile', enabled: true },
+    google:     { key: '', model: 'gemini-2.5-flash', enabled: true },
+  },
+  // Rotation order (by default: openrouter → groq → google)
+  rotationOrder: ['openrouter', 'groq', 'google'],
+  // Cooldowns per provider (timestamp when they can be retried)
+  cooldowns: { openrouter: 0, groq: 0, google: 0 },
   characters: [],          // [{id, name, avatar, description, personality, scenario, firstMessage, system, tags, createdAt}]
   currentCharId: null,
   sessions: {},            // {charId: [{role, content, ts}]}
@@ -617,7 +751,22 @@ function loadState() {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return structuredClone(defaultState);
     const parsed = JSON.parse(raw);
-    return { ...structuredClone(defaultState), ...parsed };
+    // Migrate old format (apiKey + model) → new providers structure
+    if (parsed.apiKey && !parsed.providers) {
+      parsed.providers = structuredClone(defaultState.providers);
+      parsed.providers.openrouter.key = parsed.apiKey;
+      parsed.providers.openrouter.model = parsed.model || defaultState.providers.openrouter.model;
+      parsed.rotationOrder = defaultState.rotationOrder;
+      parsed.cooldowns = { openrouter: 0, groq: 0, google: 0 };
+    }
+    // Ensure all sub-fields exist (for forward compat)
+    const merged = { ...structuredClone(defaultState), ...parsed };
+    merged.providers = { ...structuredClone(defaultState.providers), ...(parsed.providers || {}) };
+    for (const p of ['openrouter', 'groq', 'google']) {
+      merged.providers[p] = { ...structuredClone(defaultState.providers[p]), ...(merged.providers[p] || {}) };
+    }
+    merged.cooldowns = { ...defaultState.cooldowns, ...(parsed.cooldowns || {}) };
+    return merged;
   } catch { return structuredClone(defaultState); }
 }
 function saveState() {
@@ -662,71 +811,233 @@ function show(name) {
   document.getElementById(name + 'Screen').classList.remove('hidden');
 }
 
-// ---------- Setup ----------
-document.getElementById('saveSetupBtn').onclick = () => {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key.startsWith('sk-or-')) {
-    toast('Key should start with sk-or-');
-    return;
-  }
-  state.apiKey = key;
-  state.model = document.getElementById('modelSelect').value;
-  saveState();
-  renderCharacters();
-  show('characters');
-};
-
-// Test the currently selected model
-document.getElementById('testModelBtn').onclick = async () => {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  const model = document.getElementById('modelSelect').value;
-  const resultEl = document.getElementById('testResult');
-  if (!key.startsWith('sk-or-')) {
-    resultEl.innerHTML = '<span style="color:var(--danger)">⚠ Enter a valid API key first</span>';
-    return;
-  }
-  const btn = document.getElementById('testModelBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Testing...';
-  resultEl.innerHTML = '<span style="color:var(--text-dim)">Sending test message...</span>';
-  try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+// ---------- Provider abstraction ----------
+// Each provider has: buildRequest, parseResponse, friendlyError
+// All use an OpenAI-compatible chat/completions shape EXCEPT Google which uses generateContent
+const PROVIDERS = {
+  openrouter: {
+    name: 'OpenRouter',
+    endpoint: (model) => 'https://openrouter.ai/api/v1/chat/completions',
+    buildRequest: (key, model, messages, opts) => ({
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + key,
         'Content-Type': 'application/json',
         'HTTP-Referer': location.origin,
-        'X-Title': 'Lust-Test',
+        'X-Title': 'Lust',
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
-        max_tokens: 10,
+        messages,
+        temperature: opts?.temperature ?? 0.9,
+        max_tokens: opts?.max_tokens ?? 800,
       }),
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`${res.status}: ${parseOpenRouterError(txt)}`);
-    }
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || '(empty reply)';
-    resultEl.innerHTML = `<span style="color:var(--success)">✅ Works! Model replied: "${escapeHtml(reply.slice(0, 50))}"</span>`;
-  } catch (e) {
-    resultEl.innerHTML = `<span style="color:var(--danger)">❌ ${escapeHtml(e.message.slice(0, 200))}</span>`;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '⚡ Test selected model';
-  }
+    }),
+    parseResponse: (data) => data?.choices?.[0]?.message?.content || '',
+    parseError: parseOpenRouterError,
+    isRateLimit: (status, text) => status === 429 || /rate.?limit/i.test(text) || /quota/i.test(text),
+  },
+  groq: {
+    name: 'Groq',
+    endpoint: () => 'https://api.groq.com/openai/v1/chat/completions',
+    buildRequest: (key, model, messages, opts) => ({
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: opts?.temperature ?? 0.9,
+        max_tokens: opts?.max_tokens ?? 800,
+      }),
+    }),
+    parseResponse: (data) => data?.choices?.[0]?.message?.content || '',
+    parseError: (text) => {
+      try {
+        const j = JSON.parse(text);
+        const msg = j?.error?.message || text;
+        if (/rate.?limit/i.test(msg)) return 'Rate limited';
+        if (/auth/i.test(msg)) return 'Invalid API key';
+        return msg.slice(0, 180);
+      } catch { return text.slice(0, 180); }
+    },
+    isRateLimit: (status) => status === 429,
+  },
+  google: {
+    name: 'Google',
+    endpoint: (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    buildRequest: (key, model, messages, opts) => {
+      // Convert OpenAI-style messages to Gemini's contents/parts format
+      // Gemini expects system instruction separately and alternating user/model turns
+      const systemMsg = messages.find(m => m.role === 'system');
+      const turns = messages.filter(m => m.role !== 'system');
+      const contents = turns.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+      const body = {
+        contents,
+        generationConfig: {
+          temperature: opts?.temperature ?? 0.9,
+          maxOutputTokens: opts?.max_tokens ?? 800,
+        },
+      };
+      if (systemMsg) body.systemInstruction = { parts: [{ text: systemMsg.content }] };
+      return {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key },
+        body: JSON.stringify(body),
+      };
+    },
+    parseResponse: (data) => {
+      const cand = data?.candidates?.[0];
+      return cand?.content?.parts?.[0]?.text || '';
+    },
+    parseError: (text) => {
+      try {
+        const j = JSON.parse(text);
+        const msg = j?.error?.message || text;
+        if (/quota/i.test(msg) || /exhausted/i.test(msg) || /RESOURCE_EXHAUSTED/.test(text)) return 'Rate limited';
+        if (/API.?key/i.test(msg)) return 'Invalid API key';
+        return msg.slice(0, 180);
+      } catch { return text.slice(0, 180); }
+    },
+    isRateLimit: (status, text) => status === 429 || /RESOURCE_EXHAUSTED/.test(text) || /quota/i.test(text),
+  },
 };
 
-// Friendly parser for OpenRouter error responses
+// Get configured+available providers (has key + not in cooldown)
+function getAvailableProviders() {
+  const now = Date.now();
+  return state.rotationOrder.filter(p => {
+    const prov = state.providers[p];
+    if (!prov || !prov.key || !prov.enabled) return false;
+    if ((state.cooldowns[p] || 0) > now) return false;
+    return true;
+  });
+}
+
+// Send a chat request with auto-rotation
+async function sendChatRequest(messages, opts = {}) {
+  const available = getAvailableProviders();
+  if (available.length === 0) {
+    throw new Error('No providers available — add at least one API key in settings, or wait for cooldowns to expire');
+  }
+  let lastErr = null;
+  for (const pName of available) {
+    const p = PROVIDERS[pName];
+    const prov = state.providers[pName];
+    try {
+      const req = p.buildRequest(prov.key, prov.model, messages, opts);
+      const res = await fetch(p.endpoint(prov.model), { ...req, signal: opts.signal });
+      if (!res.ok) {
+        const txt = await res.text();
+        if (p.isRateLimit(res.status, txt)) {
+          // Put this provider in cooldown for 60s and try next
+          state.cooldowns[pName] = Date.now() + 60_000;
+          saveState();
+          lastErr = new Error(`${p.name}: rate limited — switching...`);
+          continue;
+        }
+        // Non-rate-limit error: surface to user
+        const friendly = p.parseError ? p.parseError(txt) : txt;
+        throw new Error(`${p.name}: ${friendly}`);
+      }
+      const data = await res.json();
+      const reply = p.parseResponse(data);
+      return { reply, provider: pName };
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      // If the error is from a provider throwing intentionally (non-rate), rethrow
+      if (e.message && e.message.startsWith(p.name + ':')) throw e;
+      // Network/CORS error — try next provider
+      lastErr = e;
+      continue;
+    }
+  }
+  throw lastErr || new Error('All providers failed');
+}
+
+// ---------- Setup screen UI ----------
+const providerTabsEl = document.getElementById('providerTabs');
+const providerPanels = document.querySelectorAll('.provider-panel');
+
+function showProviderPanel(name) {
+  providerTabsEl.querySelectorAll('.provider-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.provider === name);
+  });
+  providerPanels.forEach(p => {
+    p.style.display = (p.dataset.provider === name) ? '' : 'none';
+  });
+}
+
+providerTabsEl.querySelectorAll('.provider-tab').forEach(tab => {
+  tab.onclick = () => showProviderPanel(tab.dataset.provider);
+});
+
+function readProviderUI(name) {
+  const panel = document.querySelector(`.provider-panel[data-provider="${name}"]`);
+  const keyInput = panel.querySelector('input[data-field="key"]');
+  const modelSelect = panel.querySelector('select[data-field="model"]');
+  return {
+    key: keyInput.value.trim(),
+    model: modelSelect.value,
+  };
+}
+
+function writeProviderUI(name, data) {
+  const panel = document.querySelector(`.provider-panel[data-provider="${name}"]`);
+  const keyInput = panel.querySelector('input[data-field="key"]');
+  const modelSelect = panel.querySelector('select[data-field="model"]');
+  if (data.key !== undefined) keyInput.value = data.key;
+  if (data.model !== undefined) {
+    if (Array.from(modelSelect.options).some(o => o.value === data.model)) {
+      modelSelect.value = data.model;
+    }
+  }
+}
+
+function refreshProviderTabs() {
+  providerTabsEl.querySelectorAll('.provider-tab').forEach(tab => {
+    const p = tab.dataset.provider;
+    const prov = state.providers[p];
+    tab.classList.toggle('configured', !!(prov && prov.key));
+    tab.classList.toggle('cooling', (state.cooldowns[p] || 0) > Date.now());
+  });
+}
+
+// Save all provider configs from UI
+function saveProvidersFromUI() {
+  ['openrouter', 'groq', 'google'].forEach(p => {
+    const data = readProviderUI(p);
+    state.providers[p].key = data.key;
+    state.providers[p].model = data.model;
+  });
+  saveState();
+  refreshProviderTabs();
+}
+
+document.getElementById('saveSetupBtn').onclick = () => {
+  saveProvidersFromUI();
+  const available = getAvailableProviders();
+  if (available.length === 0) {
+    const resultEl = document.getElementById('testResult');
+    resultEl.innerHTML = '<span style="color:var(--danger)">⚠ Add at least one API key above</span>';
+    return;
+  }
+  renderCharacters();
+  show('characters');
+};
+
+// Friendly parser for OpenRouter error responses (kept for provider module use)
 function parseOpenRouterError(text) {
   try {
     const j = JSON.parse(text);
     const msg = j?.error?.message || j?.message || text;
-    // Map common errors to friendly messages
     if (/unavailable/i.test(msg) && /free/i.test(msg)) {
-      return 'This model is not currently free. Try a different free model from the dropdown.';
+      return 'This model is not currently free. Try a different free model.';
     }
     if (/not found/i.test(msg) || /404/.test(text)) {
       return 'Model not found. It may have been removed. Pick another.';
@@ -735,7 +1046,7 @@ function parseOpenRouterError(text) {
       return 'Invalid API key. Check your key at openrouter.ai/keys';
     }
     if (/rate.?limit/i.test(msg) || /429/.test(text)) {
-      return 'Rate limited. Wait a minute or switch models.';
+      return 'Rate limited';
     }
     if (/credits/i.test(msg) || /balance/i.test(msg) || /402/.test(text)) {
       return 'Out of credits. This model is paid — switch to a free one or add credits.';
@@ -746,66 +1057,60 @@ function parseOpenRouterError(text) {
   }
 }
 
-// ---------- Settings (re-open from characters) ----------
-document.getElementById('openSettingsBtn').onclick = () => {
-  document.getElementById('apiKeyInput').value = state.apiKey;
-  document.getElementById('modelSelect').value = state.model;
-  syncFreeOnlyToggle();
-  show('setup');
+// Test ALL configured providers in parallel
+document.getElementById('testAllBtn').onclick = async () => {
+  const resultEl = document.getElementById('testResult');
+  const btn = document.getElementById('testAllBtn');
+  saveProvidersFromUI();
+  btn.disabled = true;
+  btn.textContent = '⏳ Testing...';
+  resultEl.innerHTML = '<span style="color:var(--text-dim)">Testing configured providers...</span>';
+
+  const configured = ['openrouter', 'groq', 'google'].filter(p => state.providers[p].key);
+  if (configured.length === 0) {
+    resultEl.innerHTML = '<span style="color:var(--danger)">⚠ Add at least one API key first</span>';
+    btn.disabled = false; btn.textContent = '⚡ Test all configured providers';
+    return;
+  }
+
+  const results = await Promise.all(configured.map(async p => {
+    const prov = PROVIDERS[p];
+    try {
+      const req = prov.buildRequest(state.providers[p].key, state.providers[p].model, [{role: 'user', content: 'Reply with exactly: OK'}], { max_tokens: 10 });
+      const res = await fetch(prov.endpoint(state.providers[p].model), req);
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`${res.status}: ${prov.parseError ? prov.parseError(txt) : txt}`);
+      }
+      const data = await res.json();
+      const reply = prov.parseResponse(data) || '(empty)';
+      return { p, ok: true, reply };
+    } catch (e) {
+      return { p, ok: false, err: e.message.slice(0, 120) };
+    }
+  }));
+
+  resultEl.innerHTML = results.map(r => {
+    const color = r.ok ? 'var(--success)' : 'var(--danger)';
+    const icon = r.ok ? '✅' : '❌';
+    const text = r.ok ? `${PROVIDERS[r.p].name}: "${escapeHtml(r.reply.slice(0, 40))}"` : `${PROVIDERS[r.p].name}: ${escapeHtml(r.err)}`;
+    return `<div style="color:${color};margin:4px 0">${icon} ${text}</div>`;
+  }).join('');
+
+  btn.disabled = false;
+  btn.textContent = '⚡ Test all configured providers';
 };
 
-// Free-only filter for model dropdown
-const freeOnlyToggle = document.getElementById('freeOnlyToggle');
-const modelSelectEl = document.getElementById('modelSelect');
-
-function syncFreeOnlyToggle() {
-  freeOnlyToggle.checked = (state.model || '').endsWith(':free');
-  applyModelFilter();
-}
-function applyModelFilter() {
-  const showOnlyFree = freeOnlyToggle.checked;
-  // Cache full list on first run
-  if (!modelSelectEl._originalOptions) {
-    modelSelectEl._originalOptions = Array.from(modelSelectEl.querySelectorAll('option')).map(o => ({
-      text: o.textContent, value: o.value, free: o.dataset.free === 'true', group: o.parentElement.label,
-    }));
-  }
-  const currentValue = state.model || modelSelectEl.value;
-  // Reset
-  modelSelectEl.innerHTML = '';
-  const seenGroups = new Set();
-  modelSelectEl._originalOptions.forEach(opt => {
-    if (showOnlyFree && !opt.free) return;
-    let group = modelSelectEl.querySelector(`optgroup[label="${cssEscape(opt.group)}"]`);
-    if (!group) {
-      group = document.createElement('optgroup');
-      group.label = opt.group;
-      modelSelectEl.appendChild(group);
-    }
-    const o = document.createElement('option');
-    o.value = opt.value;
-    o.textContent = opt.text;
-    if (opt.free) o.dataset.free = 'true';
-    group.appendChild(o);
-  });
-  // Restore selection
-  if (Array.from(modelSelectEl.options).some(o => o.value === currentValue)) {
-    modelSelectEl.value = currentValue;
-  }
-}
-function cssEscape(s) { return String(s).replace(/"/g, '\\"'); }
-
-freeOnlyToggle.addEventListener('change', () => {
-  applyModelFilter();
-  // If current model was filtered out, switch to first free model
-  if (freeOnlyToggle.checked && !modelSelectEl.value.endsWith(':free')) {
-    const firstFree = Array.from(modelSelectEl.options).find(o => o.value.endsWith(':free'));
-    if (firstFree) {
-      modelSelectEl.value = firstFree.value;
-      toast('Switched to ' + firstFree.text);
-    }
-  }
-});
+// ---------- Settings (re-open from characters) ----------
+document.getElementById('openSettingsBtn').onclick = () => {
+  // Populate UI from state
+  ['openrouter', 'groq', 'google'].forEach(p => writeProviderUI(p, state.providers[p]));
+  refreshProviderTabs();
+  // Switch to first configured provider's tab if any
+  const firstConfigured = ['openrouter', 'groq', 'google'].find(p => state.providers[p].key);
+  showProviderPanel(firstConfigured || 'openrouter');
+  show('setup');
+};
 
 // ---------- Characters list ----------
 const charListEl = document.getElementById('charList');
@@ -1004,16 +1309,23 @@ const messagesEl = document.getElementById('messages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
+const chatProviderBadge = document.getElementById('chatProviderBadge');
+const chatModelTag = document.getElementById('chatModelTag');
+
 function openChat(charId) {
   state.currentCharId = charId;
   saveState();
   const c = state.characters.find(x => x.id === charId);
   document.getElementById('chatAvatar').textContent = c.avatar || '🎭';
   document.getElementById('chatName').textContent = c.name;
-  const tag = document.getElementById('chatModelTag');
-  tag.textContent = shortModelName(state.model);
-  tag.classList.toggle('free', modelIsFree(state.model));
-  tag.title = state.model + (modelIsFree(state.model) ? ' (free)' : ' (paid)');
+  // Show first available provider in header initially
+  const first = getAvailableProviders()[0] || state.rotationOrder.find(p => state.providers[p].key);
+  if (first) {
+    const activeProv = state.providers[first];
+    chatProviderBadge.textContent = PROVIDERS[first].name;
+    chatModelTag.textContent = shortModelName(activeProv.model);
+    chatModelTag.classList.toggle('free', isLikelyFree(activeProv.model, first));
+  }
   renderMessages();
   show('chat');
   setTimeout(() => userInput.focus(), 100);
@@ -1151,46 +1463,43 @@ async function generateResponse(session) {
     const c = state.characters.find(x => x.id === state.currentCharId);
     const systemPrompt = buildSystemPrompt(c);
     const messages = [{ role: 'system', content: systemPrompt }, ...session.map(m => ({ role: m.role, content: m.content }))];
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + state.apiKey,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': location.origin,
-        'X-Title': 'Lust',
-      },
-      body: JSON.stringify({
-        model: state.model,
-        messages,
-        temperature: 0.9,
-        max_tokens: 800,
-        stream: false,
-      }),
+
+    const { reply, provider } = await sendChatRequest(messages, {
+      temperature: 0.9,
+      max_tokens: 800,
       signal: abortController.signal,
     });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`${res.status}: ${parseOpenRouterError(errText)}`);
+
+    // Update header to show which provider actually answered
+    const activeProv = state.providers[provider];
+    if (activeProv) {
+      chatProviderBadge.textContent = PROVIDERS[provider].name;
+      chatModelTag.textContent = shortModelName(activeProv.model);
+      chatModelTag.classList.toggle('free', activeProv.model.endsWith(':free') || isLikelyFree(activeProv.model, provider));
     }
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || '*(no response)*';
+
     removeTyping();
-    session.push({ role: 'assistant', content: reply, ts: Date.now() });
+    session.push({ role: 'assistant', content: reply || '*(empty response)*', provider, ts: Date.now() });
     saveState();
-    appendMessageDOM('assistant', reply, session.length - 1);
+    appendMessageDOM('assistant', reply || '*(empty response)*', session.length - 1);
     scrollToBottom();
   } catch (e) {
     removeTyping();
     if (e.name === 'AbortError') {
       toast('Cancelled');
     } else {
-      toast('Error: ' + e.message.slice(0, 80));
+      toast('Error: ' + e.message.slice(0, 100));
       console.error(e);
     }
   } finally {
     isGenerating = false;
     sendBtn.disabled = userInput.value.trim().length === 0;
   }
+}
+
+function isLikelyFree(model, provider) {
+  if (provider === 'groq' || provider === 'google') return true; // All listed models are free
+  return model.endsWith(':free');
 }
 
 function buildSystemPrompt(c) {
@@ -1601,8 +1910,9 @@ async function fetchChubCharacter(fullPath) {
 
 // ---------- Boot ----------
 function boot() {
-  syncFreeOnlyToggle();
-  if (!state.apiKey) {
+  refreshProviderTabs();
+  const hasAnyProvider = ['openrouter', 'groq', 'google'].some(p => state.providers[p] && state.providers[p].key);
+  if (!hasAnyProvider) {
     show('setup');
   } else {
     renderCharacters();
