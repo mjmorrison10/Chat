@@ -122,6 +122,18 @@
       transition: transform 0.1s, border-color 0.2s;
     }
     .char-card:active { transform: scale(0.98); border-color: var(--accent); }
+    .char-card .edit-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      color: var(--text-dim);
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      opacity: 0.5;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .char-card:hover .edit-btn, .char-card .edit-btn:active { opacity: 1; color: var(--accent); }
     .char-avatar {
       width: 52px; height: 52px;
       border-radius: 50%;
@@ -1133,6 +1145,8 @@ function renderCharacters() {
       </div>`;
     return;
   }
+  // Update empty-state in case it's showing old text
+  // (not strictly necessary, but harmless)
   charListEl.innerHTML = state.characters.map(c => `
     <div class="char-card" data-id="${c.id}">
       <div class="char-avatar">${escapeHtml(c.avatar || '🎭')}</div>
@@ -1140,10 +1154,22 @@ function renderCharacters() {
         <div class="char-name">${escapeHtml(c.name)}</div>
         <div class="char-preview">${escapeHtml((c.description || c.personality || 'No description').slice(0, 60))}</div>
       </div>
+      <button class="edit-btn" data-edit="${c.id}" title="Edit character">✎</button>
     </div>
   `).join('');
   charListEl.querySelectorAll('.char-card').forEach(el => {
-    el.onclick = () => openChat(el.dataset.id);
+    // Tap avatar/info area → open chat
+    el.querySelector('.char-avatar').onclick = (e) => { e.stopPropagation(); openChat(el.dataset.id); };
+    el.querySelector('.char-info').onclick = (e) => { e.stopPropagation(); openChat(el.dataset.id); };
+    // Tap edit button → open editor
+    el.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); openEditor(el.dataset.id); };
+    // Long-press the whole card → open editor (mobile-friendly)
+    let pressTimer;
+    el.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => openEditor(el.dataset.id), 500);
+    }, { passive: true });
+    el.addEventListener('touchend', () => clearTimeout(pressTimer));
+    el.addEventListener('touchmove', () => clearTimeout(pressTimer));
   });
 }
 document.getElementById('newCharBtn').onclick = () => openEditor(null);
