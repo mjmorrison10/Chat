@@ -572,6 +572,26 @@
       line-height: 1.4;
     }
     .auto-rotate-info strong { color: var(--success); }
+    .seg-control {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .seg-btn {
+      padding: 9px 6px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.25;
+      text-align: center;
+    }
+    .seg-btn .seg-sub { font-size: 10px; color: var(--text-dim); font-weight: 400; opacity: 0.7; }
+    .seg-btn.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border-color: var(--accent); }
+    .seg-btn.active .seg-sub { color: rgba(255,255,255,0.85); opacity: 1; }
+    .seg-btn:active { transform: scale(0.97); }
     .chat-header .provider-badge {
       font-size: 10px;
       padding: 2px 6px;
@@ -682,6 +702,19 @@
 
       <button id="testAllBtn" class="btn-secondary" style="margin-top:10px;padding:11px;width:100%;border:1px solid var(--border)">⚡ Test all configured providers</button>
       <div id="testResult" style="font-size:13px;margin-top:8px;min-height:18px"></div>
+
+      <div style="margin-top:18px">
+        <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:8px">Response length</label>
+        <div class="seg-control" id="lengthControl">
+          <button class="seg-btn" data-len="short">Short<br><span class="seg-sub">~150 words</span></button>
+          <button class="seg-btn" data-len="medium">Medium<br><span class="seg-sub">~375 words</span></button>
+          <button class="seg-btn active" data-len="long">Long<br><span class="seg-sub">~750 words</span></button>
+          <button class="seg-btn" data-len="verylong">Very Long<br><span class="seg-sub">~1500 words</span></button>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.4">
+          Longer responses cost more tokens. Free models handle up to "Very Long" comfortably.
+        </div>
+      </div>
 
       <button id="saveSetupBtn" class="btn-primary">Get Started →</button>
     </div>
@@ -831,9 +864,19 @@ const defaultState = {
   rotationOrder: ['openrouter', 'groq', 'google'],
   // Cooldowns per provider (timestamp when they can be retried)
   cooldowns: { openrouter: 0, groq: 0, google: 0 },
+  responseLength: 'long',  // 'short' | 'medium' | 'long' | 'verylong'
+  temperature: 0.9,
   characters: [],          // [{id, name, avatar, description, personality, scenario, firstMessage, system, tags, createdAt}]
   currentCharId: null,
   sessions: {},            // {charId: [{role, content, ts}]}
+};
+
+// Map response-length setting to actual max_tokens values
+const LENGTH_TOKENS = {
+  short:    200,   // ~150 words
+  medium:   500,   // ~375 words
+  long:     1000,  // ~750 words
+  verylong: 2000,  // ~1500 words
 };
 
 let state = loadState();
@@ -1115,6 +1158,17 @@ function saveProvidersFromUI() {
   refreshProviderTabs();
 }
 
+// Segmented control for response length
+document.querySelectorAll('#lengthControl .seg-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#lengthControl .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.responseLength = btn.dataset.len;
+    saveState();
+    toast('Length: ' + btn.textContent.replace(/\s+/g, ' ').trim());
+  };
+});
+
 document.getElementById('saveSetupBtn').onclick = () => {
   saveProvidersFromUI();
   const available = getAvailableProviders();
@@ -1202,6 +1256,10 @@ document.getElementById('openSettingsBtn').onclick = () => {
   // Populate UI from state
   ['openrouter', 'groq', 'google'].forEach(p => writeProviderUI(p, state.providers[p]));
   refreshProviderTabs();
+  // Populate length control
+  document.querySelectorAll('#lengthControl .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.len === (state.responseLength || 'long'));
+  });
   // Switch to first configured provider's tab if any
   const firstConfigured = ['openrouter', 'groq', 'google'].find(p => state.providers[p].key);
   showProviderPanel(firstConfigured || 'openrouter');
@@ -1673,8 +1731,8 @@ async function generateResponse(session) {
     const messages = [{ role: 'system', content: systemPrompt }, ...session.map(m => ({ role: m.role, content: m.content }))];
 
     const { reply, provider } = await sendChatRequest(messages, {
-      temperature: 0.9,
-      max_tokens: 800,
+      temperature: state.temperature ?? 0.9,
+      max_tokens: LENGTH_TOKENS[state.responseLength] || 1000,
       signal: abortController.signal,
     });
 
