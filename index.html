@@ -319,6 +319,17 @@
     .suggest-input .si-cancel { background: var(--bg); color: var(--text-dim); }
     .suggest-input .si-submit { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; }
     .msg.suggested .bubble { border-left: 3px solid var(--accent); }
+    .msg .guide-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(196, 77, 255, 0.12);
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      letter-spacing: 0.4px;
+    }
 
     .typing { display: flex; gap: 4px; padding: 14px 18px; }
     .typing span {
@@ -384,6 +395,36 @@
       padding: 22px;
       width: 100%; max-width: 400px;
     }
+    /* Wide variant for guide/import modals */
+    .modal-content.wide {
+      max-width: 720px;
+      padding: 20px;
+    }
+    .guide-modal textarea {
+      width: 100%;
+      min-height: 180px;
+      max-height: 50vh;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text);
+      outline: none;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .guide-modal textarea:focus { border-color: var(--accent); }
+    .guide-modal .guide-hint {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .guide-modal .guide-actions { display: flex; gap: 10px; }
+    .guide-modal .guide-actions button { flex: 1; padding: 13px; border-radius: 10px; font-weight: 600; font-size: 14px; }
     .modal h3 { margin-bottom: 12px; font-size: 17px; }
     .modal p { color: var(--text-dim); font-size: 14px; margin-bottom: 16px; }
     .modal .modal-actions { display: flex; gap: 10px; }
@@ -1442,20 +1483,26 @@ function renderMessages() {
   const c = state.characters.find(x => x.id === state.currentCharId);
   messagesEl.innerHTML = '';
   session.forEach((m, idx) => {
-    appendMessageDOM(m.role, m.content, idx, !!m.suggested);
+    appendMessageDOM(m.role, m.content, idx, !!m.suggested, !!m.isGuide);
   });
   scrollToBottom();
 }
 
-function appendMessageDOM(role, content, idx, suggested = false) {
+function appendMessageDOM(role, content, idx, suggested = false, isGuide = false) {
   const wrap = document.createElement('div');
-  wrap.className = 'msg ' + role + (suggested ? ' suggested' : '');
+  wrap.className = 'msg ' + role + (suggested ? ' suggested' : '') + (isGuide ? ' guide-msg' : '');
   wrap.dataset.idx = idx;
   // Tap message to toggle actions visible (for mobile)
   wrap.onclick = () => {
     document.querySelectorAll('.msg.show-actions').forEach(m => { if (m !== wrap) m.classList.remove('show-actions'); });
     wrap.classList.toggle('show-actions');
   };
+  if (isGuide) {
+    const tag = document.createElement('div');
+    tag.className = 'guide-tag';
+    tag.textContent = '✍ GUIDE';
+    wrap.appendChild(tag);
+  }
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
   bubble.textContent = content;
@@ -1499,62 +1546,65 @@ function appendMessageDOM(role, content, idx, suggested = false) {
   messagesEl.appendChild(wrap);
 }
 
-// Open an inline input below a message so the user can write what the AI should say
-function startSuggestion(idx) {
-  // Remove any existing suggestion input
-  document.querySelectorAll('.suggest-input').forEach(el => el.remove());
+// Open a full-width modal so the user can type guidance that steers the AI's next reply
+function startGuide(idx) {
   document.querySelectorAll('.msg.show-actions').forEach(m => m.classList.remove('show-actions'));
-  const wrap = messagesEl.querySelector(`.msg[data-idx="${idx}"]`);
-  if (!wrap) return;
+  document.querySelectorAll('.suggest-input').forEach(el => el.remove());
   const session = getSession();
-  const oldText = (session[idx]?.content || '').trim();
-  const c = state.characters.find(x => x.id === state.currentCharId);
-  const charName = c ? c.name : 'character';
+  if (idx >= session.length || session[idx].role !== 'assistant') return;
 
-  const input = document.createElement('div');
-  input.className = 'suggest-input';
-  input.innerHTML = `
-    <textarea placeholder="Suggest what ${escapeHtml(charName)} would say here..." rows="1"></textarea>
-    <button class="si-cancel">Cancel</button>
-    <button class="si-submit">Send</button>
+  const content = modal.querySelector('.modal-content');
+  const originalHTML = content.innerHTML;
+  content.classList.add('wide', 'guide-modal');
+  content.innerHTML = `
+    <h3>✍ Guide the AI</h3>
+    <p class="guide-hint">Write instructions to steer the AI's next reply. The bad response will be discarded, your guide will be inserted into the conversation as a user message, and the AI will regenerate following your guidance.<br><br>Examples: "be more seductive", "describe the setting in detail", "have her hesitate", "switch to a darker tone".</p>
+    <textarea id="guideText" placeholder="What should the AI do differently?"></textarea>
+    <div class="guide-actions">
+      <button id="guideCancel" class="btn-secondary">Cancel</button>
+      <button id="guideSubmit" class="btn-save">Regenerate with guide</button>
+    </div>
   `;
-  input.querySelector('textarea').value = oldText;
-  wrap.appendChild(input);
-  const textarea = input.querySelector('textarea');
-  // Auto-resize
-  const resize = () => {
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 140) + 'px';
-  };
-  textarea.addEventListener('input', resize);
-  resize();
-  textarea.focus();
-  // Move cursor to end
-  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  modal.classList.add('open');
+  setTimeout(() => content.querySelector('#guideText').focus(), 50);
 
-  const close = () => input.remove();
-  const submit = () => {
-    const text = textarea.value.trim();
-    if (!text) { close(); return; }
-    const session = getSession();
-    session[idx] = { role: 'assistant', content: text, ts: Date.now(), suggested: true };
-    saveState();
-    renderMessages();
-    toast('Suggestion saved');
+  const cleanup = () => {
+    content.classList.remove('wide', 'guide-modal');
+    content.innerHTML = originalHTML;
+    modal.classList.remove('open');
   };
-  input.querySelector('.si-cancel').onclick = (e) => { e.stopPropagation(); close(); };
-  input.querySelector('.si-submit').onclick = (e) => { e.stopPropagation(); submit(); };
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); e.stopPropagation();
-      submit();
+  content.querySelector('#guideCancel').onclick = cleanup;
+
+  content.querySelector('#guideSubmit').onclick = async () => {
+    const text = content.querySelector('#guideText').value.trim();
+    if (!text) { toast('Type something first'); return; }
+    cleanup();
+    await applyGuideAndRegenerate(idx, text);
+  };
+
+  const ta = content.querySelector('#guideText');
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      content.querySelector('#guideSubmit').click();
     } else if (e.key === 'Escape') {
-      e.preventDefault(); e.stopPropagation();
-      close();
+      e.preventDefault();
+      cleanup();
     }
   });
-  // Prevent the wrap's tap-to-toggle from triggering
-  input.onclick = (e) => e.stopPropagation();
+}
+
+// Insert the user's guide as a user message, discard the bad assistant message, then regenerate
+async function applyGuideAndRegenerate(idx, guideText) {
+  const session = getSession();
+  if (idx >= session.length || session[idx].role !== 'assistant') return;
+  // Remove the bad assistant message AND everything after it (consistent with regenerate)
+  session.splice(idx);
+  // Insert the guide as a user message at that position
+  session.splice(idx, 0, { role: 'user', content: guideText, ts: Date.now(), isGuide: true });
+  saveState();
+  renderMessages();
+  await generateResponse(session);
 }
 
 function scrollToBottom() {
