@@ -1747,7 +1747,7 @@ async function generateResponse(session) {
     const systemPrompt = buildSystemPrompt(c);
     const messages = [{ role: 'system', content: systemPrompt }, ...session.map(m => ({ role: m.role, content: m.content }))];
 
-    const { content: rawReply, provider, finishReason, usage } = await sendChatRequest(messages, {
+    const { content: rawReply, provider } = await sendChatRequest(messages, {
       temperature: state.temperature ?? 0.9,
       max_tokens: LENGTH_TOKENS[state.responseLength] || 1000,
       stop: getStopSequences(),
@@ -1762,41 +1762,11 @@ async function generateResponse(session) {
       chatModelTag.classList.toggle('free', activeProv.model.endsWith(':free') || isLikelyFree(activeProv.model, provider));
     }
 
-    // Detect truncation: API hit max_tokens AND the text doesn't end with sentence-ending punctuation
-    const maxTok = LENGTH_TOKENS[state.responseLength] || 1000;
-    const usedAllTokens = usage && usage.completion_tokens && usage.completion_tokens >= maxTok - 5;
-    const wasCutOff = finishReason === 'length' || (usedAllTokens && looksTruncated(rawReply));
-    let reply = (rawReply || '').trim();
-    if (wasCutOff && reply) {
-      // Trim to last complete sentence boundary if possible
-      const lastEnd = Math.max(
-        reply.lastIndexOf('. '),
-        reply.lastIndexOf('! '),
-        reply.lastIndexOf('? '),
-        reply.lastIndexOf('*'),
-        reply.lastIndexOf('\n'),
-      );
-      if (lastEnd > reply.length * 0.5) {
-        reply = reply.slice(0, lastEnd + 1).trimEnd();
-      }
-      reply = reply + ' …';
-    }
-
     removeTyping();
-    const finalContent = reply || '*(empty response)*';
-    session.push({ role: 'assistant', content: finalContent, provider, truncated: wasCutOff, ts: Date.now() });
+    const finalContent = (rawReply || '').trim() || '*(empty response)*';
+    session.push({ role: 'assistant', content: finalContent, provider, ts: Date.now() });
     saveState();
     appendMessageDOM('assistant', finalContent, session.length - 1);
-    if (wasCutOff) {
-      // Show a small marker below the message
-      const lastMsg = messagesEl.lastElementChild;
-      if (lastMsg) {
-        const marker = document.createElement('div');
-        marker.style.cssText = 'font-size:11px;color:var(--text-dim);padding:2px 6px;margin-top:-2px';
-        marker.textContent = '⚠ response was cut off — switch to a longer length or Regenerate';
-        lastMsg.appendChild(marker);
-      }
-    }
     scrollToBottom();
   } catch (e) {
     removeTyping();
@@ -1817,21 +1787,53 @@ function isLikelyFree(model, provider) {
   return model.endsWith(':free');
 }
 
-// Per-length guidance injected into the system prompt so the model knows the target
+// Per-length guidance injected into the system prompt so the model knows the target.
+// Emphasis on PLANNING AHEAD so responses are complete, dialogue-heavy, and reach
+// a natural stopping point within the word budget.
 const LENGTH_GUIDANCE = {
-  tiny:     'IMPORTANT: Keep this response to about 25 words maximum (1-3 short sentences). You MUST complete every sentence. Never leave a sentence unfinished.',
-  brief:    'IMPORTANT: Keep this response to about 50 words maximum (2-4 sentences). You MUST complete every sentence. Never leave a sentence unfinished.',
-  short:    'IMPORTANT: Keep this response to about 150 words maximum. You MUST complete every sentence. Never leave a sentence unfinished.',
-  medium:   'IMPORTANT: Keep this response to about 375 words. You MUST complete every sentence. Never leave a sentence unfinished.',
-  long:     'IMPORTANT: Write a detailed response of about 750 words. You MUST complete every sentence.',
-  verylong: 'IMPORTANT: Write an elaborate, immersive response of up to 1500 words. You MUST complete every sentence.',
+  tiny: [
+    'LENGTH BUDGET: about 25 words (1-2 short sentences).',
+    'PRIORITIZE DIALOGUE — keep narration to a single short action line in asterisks.',
+    'PLAN AHEAD: do not start a new thought, scene shift, or reaction you cannot finish within the budget.',
+    'END at a clear beat: the character has spoken, reacted, or answered. Stop there. Do not introduce a cliffhanger or open-ended question.',
+  ].join(' '),
+  brief: [
+    'LENGTH BUDGET: about 50 words (2-3 sentences).',
+    'PRIORITIZE DIALOGUE — at least one full line of speech in quotes.',
+    'PLAN AHEAD: do not start a new thought, scene shift, or reaction you cannot finish within the budget.',
+    'END at a clear beat: the character finishes their thought, reacts, or answers. Stop there.',
+  ].join(' '),
+  short: [
+    'LENGTH BUDGET: about 150 words (3-5 sentences, maybe one short paragraph).',
+    'PRIORITIZE DIALOGUE — most of your response should be speech in quotes. Use brief action lines only to set the beat.',
+    'PLAN AHEAD: pick ONE thing to convey — a single exchange, reaction, or move — and complete it.',
+    'END at a clear beat: the exchange is done. Do not start a new one or leave a thread hanging.',
+  ].join(' '),
+  medium: [
+    'LENGTH BUDGET: about 375 words.',
+    'PRIORITIZE DIALOGUE — heavy on speech in quotes, light on narration.',
+    'PLAN AHEAD: 1-2 connected exchanges or beats. Complete every one.',
+    'END at a clear beat where the scene can rest. No cliffhangers, no unresolved threads.',
+  ].join(' '),
+  long: [
+    'LENGTH BUDGET: about 750 words.',
+    'PRIORITIZE DIALOGUE — most of the response should be speech. Use action lines sparingly to set the mood or show a physical beat.',
+    'PLAN AHEAD: 2-3 connected exchanges or beats. Complete every one.',
+    'END at a clear beat where the scene can rest. No cliffhangers.',
+  ].join(' '),
+  verylong: [
+    'LENGTH BUDGET: up to 1500 words.',
+    'PRIORITIZE DIALOGUE — dialogue-heavy throughout, with short action lines for setting and physical beats.',
+    'PLAN AHEAD: 3-5 connected exchanges or beats. Complete every one before starting the next.',
+    'END at a clear beat where the scene rests. No cliffhangers.',
+  ].join(' '),
 };
 
-// Stop sequences — encourage natural ending for short responses
+// Stop sequences — encourage natural paragraph-end for very short responses only
 function getStopSequences() {
   const len = state.responseLength || 'long';
   if (len === 'tiny' || len === 'brief') {
-    return ['\n\n', '\n*', '\n—', '...'];  // stop on paragraph breaks so we don't waste tokens
+    return ['\n\n'];  // stop on a blank line (new paragraph) so model doesn't ramble
   }
   return [];
 }
@@ -1850,16 +1852,7 @@ function buildSystemPrompt(c) {
   parts.push(guidance);
   return parts.join('\n\n');
 }
-
-// Detect if a response was truncated mid-sentence by checking the last character
-function looksTruncated(text) {
-  if (!text) return false;
-  const trimmed = text.trimEnd();
-  if (!trimmed) return false;
-  // Sentence-ending punctuation (covers prose and roleplay)
-  const endings = ['.', '!', '?', '*', '"', "'", ')', ']', '}', '>', '~', '…'];
-  return !endings.includes(trimmed.slice(-1));
-}
+// (looksTruncated helper removed — model is now trusted to complete its own sentences)
 
 // ---------- Utilities ----------
 function escapeHtml(s) {
