@@ -574,7 +574,7 @@
     .auto-rotate-info strong { color: var(--success); }
     .seg-control {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
     }
     .seg-btn {
@@ -706,6 +706,8 @@
       <div style="margin-top:18px">
         <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:8px">Response length</label>
         <div class="seg-control" id="lengthControl">
+          <button class="seg-btn" data-len="tiny">Tiny<br><span class="seg-sub">~25 words</span></button>
+          <button class="seg-btn" data-len="brief">Brief<br><span class="seg-sub">~50 words</span></button>
           <button class="seg-btn" data-len="short">Short<br><span class="seg-sub">~150 words</span></button>
           <button class="seg-btn" data-len="medium">Medium<br><span class="seg-sub">~375 words</span></button>
           <button class="seg-btn active" data-len="long">Long<br><span class="seg-sub">~750 words</span></button>
@@ -873,6 +875,8 @@ const defaultState = {
 
 // Map response-length setting to actual max_tokens values
 const LENGTH_TOKENS = {
+  tiny:     35,    // ~25 words
+  brief:    70,    // ~50 words
   short:    200,   // ~150 words
   medium:   500,   // ~375 words
   long:     1000,  // ~750 words
