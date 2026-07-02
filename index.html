@@ -1592,8 +1592,8 @@ function appendMessageDOM(role, content, idx, suggested = false, isGuide = false
     actions.appendChild(regen);
     const sug = document.createElement('button');
     sug.textContent = '✍';
-    sug.title = 'Suggest what to say';
-    sug.onclick = (e) => { e.stopPropagation(); startSuggestion(idx); };
+    sug.title = 'Guide the AI\'s next reply';
+    sug.onclick = (e) => { e.stopPropagation(); startGuide(idx); };
     actions.appendChild(sug);
   }
   const copy = document.createElement('button');
